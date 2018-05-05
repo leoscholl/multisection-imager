@@ -1,17 +1,4 @@
-function proc = pre_process(ims, imdata, makeFlats)
-
-% Flat-field correction
-if nargin < 3 || isempty(makeFlats) || ~makeFlats
-    m = load('F:\Leo\Background\flatfields.mat');
-    for c = 1:size(ims,3)
-        channelName = imdata.channels{c};
-        flats(:,:,c) = m.flatfields.(channelName);
-    end
-    ims = batch_flat(ims, flats, m.flatfields.background);
-else
-    [ims, flats] = batch_flat(ims);
-    save('F:\Leo\Background\flatfields-temp.mat', 'flats');
-end
+function proc = pre_process(ims)
 
 % Normalize channels, convert to uint8
 fprintf('normalizing channels...\n');
