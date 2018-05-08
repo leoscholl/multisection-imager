@@ -1,4 +1,5 @@
-function flats = generate_flats(img, metadata)
+function flats = generateFlats(img, metadata)
+% generateFlats Use images 
 
 msg = '';
 h = ones(10,10)/100;
@@ -9,11 +10,11 @@ for c = 1:size(img,3)
     fprintf(msg)
     
     % Automatic segmentation to find images with brain tissue only
-    downsample = 20;
-    rois = segmentSlide(img, metadata, downsample, false);
+    downsample = 50;
+    metadata = segmentSlide(img, metadata, downsample, false);
     toFilter = [];
-    for n = 1:size(rois,1)
-        [~, ~, inBounds, ~] = calculateBounds(metadata, rois(n,:));
+    for n = 1:size(metadata.rois,1)
+        [~, ~, inBounds, ~] = calculateBounds(metadata, metadata.rois(n,:));
         toFilter = union(toFilter, inBounds);
     end
     

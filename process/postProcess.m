@@ -1,8 +1,8 @@
-function convertToNeurolucida(store, datadir, subject, sections, makeFlats, ...
-    doCellCount, cellCountChannelPairs)
+function postProcess(store, datadir, subject, sections, makeFlats, ...
+    doAsc, doCellCount, cellCountChannelPairs)
 
 if ~exist('makeFlats', 'var') || isempty(makeFlats)
-    makeFlats = true;
+    makeFlats = false;
 end
 if ~exist('doCellCount', 'var') || isempty(doCellCount)
     doCellCount = false;
@@ -28,18 +28,18 @@ if ~makeFlats
     end
 end
 if makeFlats
-    flats = generate_flats(img, metadata);
+    flats = generateFlats(img, metadata);
     save('flatfields-temp.mat', 'flats');
 end
-img = batch_flat(img, flats, background);
+img = batchFlatfield(img, flats, background);
 
 % Normalize and downsample
-img = pre_process(img);
+img = imgNormalize(img);
 
 % Segment
-rois = segmentSlide(img, metadata);
+metadata = segmentSlide(img, metadata);
 
-% Find blobs and write neurolucida file
+% Find blobs
 if doCellCount
     pairs = [];
     clearvars channels position
@@ -54,17 +54,29 @@ if doCellCount
             i = i + 1;
         end
     end
-    cellMetadata = metadata; cellMetadata.channels = channels; cellMetadata.position = position;
-    bimg = find_blobs(img, metadata, pairs);
-    
-    % Save to disk
-    exportToAsc(bimg, metadata, cellMetadata, rois, subject, datadir, sections);
-else
-    exportToAsc([], metadata, [], rois, subject, datadir, sections);
+    cellMetadata = metadata; 
+    cellMetadata.channels = channels; 
+    cellMetadata.position = position;
+    bimg = batchBlobDetect(img, metadata, pairs);
 end
 
-% Save images
-writeImages(img, metadata, rois, subject, datadir, sections);
+% Save to disk
+writeImages(img, metadata, subject, datadir, sections);
+if doAsc
+    if doCellCount
+        exportToAsc(bimg, metadata, cellMetadata, subject, datadir, sections);
+    else
+        exportToAsc([], metadata, [], subject, datadir, sections);
+    end
+elseif doCellCount
+    writeImages(bimg, cellMetadata, subject, datadir, sections, 'cells');
+end
 
 end
 
+% Register
+% regMetadata = metadata;
+% regCh = find(ismember(metadata.channels, registrationChannel));
+% regMetadata.channels = metadata.channels(regCh);
+% regMetadata.position = metadata.position(regCh,:);
+% transforms = registerSeries(img(:,:,regCh,:), regMetadata, rois);

@@ -1,4 +1,4 @@
-function [rois, refs] = segmentSlide(img, metadata, downsample, confirmation)
+function metadata = segmentSlide(img, metadata, downsample, confirmation)
 % segmentSlide determine ROIs automatically or with user confirmation
 
 if ~exist('downsample', 'var') || isempty(downsample)
@@ -18,7 +18,7 @@ f = imbinarize(f, 'global');
 
 % Segment
 f = imfill(f, 'holes');
-stats = regionprops(f, 'BoundingBox', 'Area');
+stats = regionprops(f, 'BoundingBox', 'Area', 'ConvexHull');
 
 % Display
 fig = figure;
@@ -38,33 +38,37 @@ i = 1;
 for n = 1:length(stats)
     if stats(n).Area > minArea && stats(n).Area < maxArea
         roi{i} = imrect(gca, stats(n).BoundingBox);
+        hull{i} = stats(n).ConvexHull;
         i = i + 1;
     end
 end
 
 % Wait for user confirmation
 ref = {};
-function addreference
+function addReference(src,event)
     ref{end+1} = impoint;
 end
 if confirmation
     addPt = uicontrol('Style', 'pushbutton', 'String', 'Add reference point...',...
-        'Position', [20 20 100 30], 'Callback', 'addReference');
+        'Position', [20 20 100 30], 'Callback', @addReference);
     cont = uicontrol('Style', 'pushbutton', 'String', 'Looks good!', ...
         'Position', [140 20 100 30], 'Callback', 'uiresume');
     uiwait;
 end
 
-% Collect ROIs
+% Collect ROIs with corresponding convex hulls
 rois = [];
+hulls = [];
 i = 1;
 for n = 1:length(roi)
     if isvalid(roi{n})
         rois(i,:) = getPosition(roi{n});
+        hulls(:,:,i) = hull{n};
         i = i + 1;
     end
 end
 rois = round(rois.*downsample);
+hulls = round(hulls.*downsample);
 
 % Collect reference points
 refs = [];
@@ -79,16 +83,22 @@ refs = round(refs.*downsample);
 
 % Sort in slide order
 tolerance = round(3000/metadata.pixelSize);
-rois = sortRowsTol(rois, tolerance);
+[rois, idx] = sortRowsTol(rois, tolerance);
+hulls = hulls(:,:,idx);
 refs = sortRowsTol(refs, tolerance);
 
 close(fig);
 
+metadata.rois = rois;
+metadata.hulls = hulls;
+metadata.refs = refs;
+
 end
 
-function rois = sortRowsTol(rois, tolerance)
+function [rois, idx] = sortRowsTol(rois, tolerance)
 % sortRois Sorts rows by column with given tolerance
 remaining = rois;
+idx = zeros(size(rois,1),1);
 for n = 1:size(rois,1)
     % find the next roi
     minX = min(remaining(:,1));
@@ -101,7 +111,8 @@ for n = 1:size(rois,1)
             nextY = remaining(next,2);
         end
     end
-    rois(n,:) = remaining(next,:);
+    idx(n) = next;
     remaining = remaining([1:next-1,next+1:end],:);
 end
+rois = rois(idx,:);
 end

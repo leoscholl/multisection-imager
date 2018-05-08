@@ -1,4 +1,4 @@
-function [img, flats] = batch_flat(img, flats, background)
+function [img, flats] = batchFlat(img, flats, background)
 
 if nargin < 3
     background = [];

@@ -1,4 +1,4 @@
-function bimg = find_blobs(img, imdata, pairs)
+function bimg = batchBlobDetect(img, imdata, pairs)
 
 msg = '';
 bimg = zeros(size(img,1), size(img, 2), size(pairs,1), size(img, 4), 'logical');

@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 04-May-2018 21:32:39
+% Last Modified by GUIDE v2.5 08-May-2018 13:34:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,8 +82,10 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-assignin('base', 'mm', handles.mm)
-pause(0.5);
+if isfield(handles, 'mm')
+    assignin('base', 'mm', handles.mm)
+    pause(0.5);
+end
 delete(hObject);
 
 % --- Executes on button press in StartMM.
@@ -135,11 +137,7 @@ filepath = fullfile(dir, subject, slide);
 channels = strtrim(strsplit(handles.Channels.String,','));
 exposures = str2double(strsplit(handles.Exposures.String,','));
 
-p = gcp('nocreate');
-if isempty(p)
-    p = parpool(2);
-end
-result = parfeval(p,@acquireMultiple, 1, mm, filepath, channels, exposures);
+result = acquireMultiple(mm, filepath, channels, exposures);
 if isempty(result.error)
     title = 'Multisection acquisition complete!';
     body = sprintf('Finished in %d hours, %d minutes, and %d seconds', ...
@@ -154,12 +152,34 @@ end
 notifyUsers(users, title, body, color);
     
 % Post-processing
-doConvert = handles.SaveASC.value;
+doConvert = handles.AutoConvert.value;
+doAsc = handles.SaveASC.value;
 doCellCount = handles.CountCells.value;
 sections = str2double(strsplit(handles.Sections.String,','));
 if doConvert
-    convertToNeurolucida(result.store, dir, subject, sections, [], doCellCount);
+    t = timer;
+    t.TimerFcn = @(~,~)postProcess(result.store, dir, subject, sections, ...
+        [], doAsc, doCellCount);
+    start(t)
 end
+
+
+% --- Executes on button press in Convert.
+function Convert_Callback(hObject, eventdata, handles)
+% hObject    handle to Convert (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+dir = handles.DataDir.String;
+subject = handles.Subject.String;
+doAsc = handles.SaveASC.value;
+doCellCount = handles.CountCells.value;
+sections = str2double(strsplit(handles.Sections.String,','));
+store = mm.displays().getCurrentWindow().getDatastore();
+t = timer;
+t.TimerFcn = @(~,~)postProcess(store, dir, subject, sections, [], ...
+    doAsc, doCellCount);
+start(t);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -254,3 +274,4 @@ function DataDir_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
