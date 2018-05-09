@@ -1,4 +1,6 @@
 function preFocus(mm, gridSize)
+% preFocus Set the focus at gridSize x gridSize positions, then interpolate
+% remaining positions using splines
 
 pl = mm.compat().getPositionList();
 nPos = pl.getNumberOfPositions();
@@ -11,9 +13,9 @@ for l = 1:nPos
     rows = max(rows, pl.getPosition(l-1).getGridRow()+1);
 end
 
-if ~exist('gridSize', 'var') || isempty(gridSize) || any(gridSize < 2)
-    gridRows = max(2, floor(rows/12));
-    gridCols = max(2, floor(cols/12));
+if ~exist('gridSize', 'var') || isempty(gridSize) || any(gridSize < 3)
+    gridRows = max(3, floor(rows/12));
+    gridCols = max(3, floor(cols/12));
     gridSize = [gridRows gridCols];
 end
 

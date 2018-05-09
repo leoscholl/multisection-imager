@@ -57,5 +57,7 @@ while(iter.hasNext)
         reshape(Image.getRawPixels, width, height)';
 end
 metadata.position = position;
+metadata.height = height;
+metadata.width = width;
 
 fprintf('\n');

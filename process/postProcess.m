@@ -1,5 +1,6 @@
-function postProcess(store, datadir, subject, sections, makeFlats, ...
+function postProcess(store, datadir, subject, makeFlats, ...
     doAsc, doCellCount, cellCountChannelPairs)
+% postProcess Make stitched images from the raw acquisition in store
 
 if ~exist('makeFlats', 'var') || isempty(makeFlats)
     makeFlats = false;
@@ -40,36 +41,16 @@ img = imgNormalize(img);
 metadata = segmentSlide(img, metadata);
 
 % Find blobs
-if doCellCount
-    pairs = [];
-    clearvars channels position
-    i = 1;
-    for p = 1:size(cellCountChannelPairs,1)
-        p1 = find(ismember(metadata.channels, cellCountChannelPairs{p,1}));
-        p2 = find(ismember(metadata.channels, cellCountChannelPairs{p,2}));
-        if ~isempty(p1) && ~isempty(p2)
-            pairs(i,:) = [p1 p2];
-            channels{i} = metadata.channels{p1};
-            position(i,:) = metadata.position(p1,:);
-            i = i + 1;
-        end
-    end
-    cellMetadata = metadata; 
-    cellMetadata.channels = channels; 
-    cellMetadata.position = position;
-    bimg = batchBlobDetect(img, metadata, pairs);
+if doAsc && doCellCount
+    metadata = countCells(img, metadata, cellCountChannelPairs);
 end
 
 % Save to disk
-writeImages(img, metadata, subject, datadir, sections);
 if doAsc
-    if doCellCount
-        exportToAsc(bimg, metadata, cellMetadata, subject, datadir, sections);
-    else
-        exportToAsc([], metadata, [], subject, datadir, sections);
-    end
-elseif doCellCount
-    writeImages(bimg, cellMetadata, subject, datadir, sections, 'cells');
+    writeImages(img, metadata, subject, datadir);
+    exportMetadataToAsc(metadata, subject, datadir);
+else
+    writeImages(img, metadata, subject, datadir);
 end
 
 end

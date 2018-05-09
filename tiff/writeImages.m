@@ -1,4 +1,4 @@
-function writeImages(img, metadata, rois, subject, datadir, sections, suffix, downsample)
+function writeImages(img, metadata, subject, datadir, suffix, downsample)
 % writeImages stitch images per ROI and save to disk
 resolution = 10000/metadata.pixelSize; % um/pixel -> pixels/cm
 channels = metadata.channels;
@@ -11,20 +11,20 @@ if ~exist('suffix', 'var')
 end
 
 msg = '';
-for n = 1:size(rois,1)
+for n = 1:size(metadata.rois,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing image %d/%d', n, size(rois,1));
+    msg = sprintf('writing image %d/%d', n, size(metadata.rois,1));
     fprintf(msg)
     
-    I = stitchImg(img, metadata, downsample, rois(n,:));
-    datapath = fullfile(datadir, subject, sprintf('Sect %d', sections(n)));
+    I = stitchImg(img, metadata, downsample, metadata.rois(n,:));
+    datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));
     if ~exist(datapath, 'dir')
         mkdir(datapath);
     end
     for c = 1:size(I,3)
         filename = sprintf('%s Sect %d %s', ...
-            subject, sections(n), channels{c});
+            subject, metadata.sections(n), channels{c});
         if ~isempty(suffix)
             filename = [filename, ' ', suffix];
         end

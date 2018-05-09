@@ -1,5 +1,4 @@
-function exportToAsc(bimg, metadata, cellMetadata, subject, ...
-    datadir, sections)
+function exportMetadataToAsc(metadata, subject, datadir)
 % exportCellsToAsc stitch images per ROI and save cells to ASC format
 
 if ~isfield(metadata, 'rois')
@@ -10,22 +9,23 @@ msg = '';
 for n = 1:size(metadata.rois,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing image %d/%d', n, size(metadata.rois,1));
+    msg = sprintf('writing asc file %d/%d', n, size(metadata.rois,1));
     fprintf(msg)
     
-    datapath = fullfile(datadir, subject, sprintf('Sect %d', sections(n)));
+    datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));
     if ~exist(datapath, 'dir')
         mkdir(datapath);
     end
     filename = sprintf('%s Sect %d.ASC', ...
-        subject, sections(n));
+        subject, metadata.sections(n));
     filepath = fullfile(datapath, filename);
     f = fopen(filepath, 'w');
     
     % Reference point
     ref = [0 0];
+    [~, ~, ~, offset] = calculateBounds(metadata, metadata.rois(n,:));
     if isfield(metadata, 'refs')
-        ref = metadata.refs(n,:);
+        ref = metadata.refs(n,:) - offset;
     end
     
     % Image metadata
@@ -33,12 +33,12 @@ for n = 1:size(metadata.rois,1)
     fprintf(f, '(ImageCoords \n');
     for c = 1:length(metadata.channels)
         filename = sprintf('%s Sect %d %s.tiff', ...
-            subject, sections(n), metadata.channels{c});
+            subject, metadata.sections(n), metadata.channels{c});
         filepath = fullfile(datapath, filename);
         fprintf(f, 'Filename "%s" Merge 65535 65535 65535 0\n', filepath);
         fprintf(f, 'Coords %f %f %f %f %f\n', ...
             metadata.pixelSize, metadata.pixelSize,...
-            ref(1)*metadata.pixelSize, ref(2)*metadata.pixelSize, 0);
+            ref(1)*metadata.pixelSize, -ref(2)*metadata.pixelSize, 0);
     end
     fprintf(f, '); End of ImageCoords\n\n');
     
@@ -50,21 +50,19 @@ for n = 1:size(metadata.rois,1)
         fprintf(f, '  (GUID "%s")\n', strcat(symbols(nums)));
         fprintf(f, '  (MBFObjectType 5)\n  (Resolution %f)\n',...
             metadata.pixelSize);
-        for p = 1:size(metadata.hulls(:,:,n),1)
+        for p = 1:size(metadata.hulls{n},1)
             fprintf(f, '  (%.2f %.2f %.2f %.2f)  ;  1, %d\n', ...
-                (metadata.hulls(p,1,n) + ref(1))*metadata.pixelSize, ...
-                -(metadata.hulls(p,2,n) + ref(2))*metadata.pixelSize, ...
+                (metadata.hulls{n}(p,1) - offset(1) + ref(1))*metadata.pixelSize, ...
+                -(metadata.hulls{n}(p,2) - offset(2) + ref(2))*metadata.pixelSize, ...
                 0, metadata.pixelSize, p);
         end
         fprintf(f, ')  ;  End of contour\n\n');
     end
     
     % Marker metadata
-    if exist('bimg', 'var') && ~isempty(bimg)
-        I = stitchImg(bimg, cellMetadata, 1, metadata.rois(n,:));
-        for c = 1:length(cellMetadata.channels)
-            stats = regionprops(I(:,:,c), 'Centroid');
-            switch cellMetadata.channels{c}
+    if isfield(metadata, 'cells')
+        for c = 1:size(metadata.cells(n,:))
+            switch metadata.channels{metadata.cells{n,c}.channel}
                 case 'GFP'
                     fprintf(f, '(FilledCircle\n  (Color Green)\n  (Name "GFP")\n');
                 case 'mCherry'
@@ -72,11 +70,11 @@ for n = 1:size(metadata.rois,1)
                 case 'BFP'
                     fprintf(f, '(FilledSquare\n  (Color Blue)\n  (Name "BFP")\n');
             end
-            for s = 1:length(stats)
+            for p = 1:length(metadata.cells{n,c}.centroid)
                 fprintf(f, '  (%.2f %.2f %.2f %.2f)  ; %d\n', ...
-                    (stats(s).Centroid(1) + ref(1))*metadata.pixelSize, ...
-                    -(stats(s).Centroid(2) + ref(2))*metadata.pixelSize, ...
-                    0, 0, s);
+                    (metadata.cells{n,c}.centroid(p,1) + ref(1))*metadata.pixelSize, ...
+                    -(metadata.cells{n,c}.centroid(p,2) + ref(2))*metadata.pixelSize, ...
+                    0, 0, p);
             end
             fprintf(f, ')  ;  End of markers\n\n');
         end

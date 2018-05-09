@@ -1,4 +1,4 @@
-function [I, offset] = stitchImg(img, imdata, downsample, roi)
+function [I, offset] = stitchImg(img, metadata, downsample, roi)
 
 if ~exist('downsample', 'var') || isempty(downsample)
     downsample = 1;
@@ -11,7 +11,7 @@ imgHeight = ceil(size(img,1)/downsample);
 imgWidth = ceil(size(img,2)/downsample);
 alpha = 1.5;
 
-[globalPosY, globalPosX, inBounds, offset] = calculateBounds(imdata, [size(img,2),size(img,1)], roi);
+[globalPosY, globalPosX, inBounds, offset] = calculateBounds(metadata, roi);
 
 globalPosY = ceil(globalPosY/downsample);
 globalPosX = ceil(globalPosX/downsample);

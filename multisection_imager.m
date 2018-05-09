@@ -115,6 +115,9 @@ function Start_Callback(hObject, eventdata, handles)
 % hObject    handle to Start (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if ~isfield(handles, 'mm')
+    error('No MicroManager environment open. Please Start MicroManager.');
+end
 mm = handles.mm;
 if checkPositionList(mm) == 0
     handles.PositionListError.Visible = 1;
@@ -136,13 +139,14 @@ slide = handles.Slide.String;
 filepath = fullfile(dir, subject, slide);
 channels = strtrim(strsplit(handles.Channels.String,','));
 exposures = str2double(strsplit(handles.Exposures.String,','));
+fprintf('Acquiring...\n');
 
 result = acquireMultiple(mm, filepath, channels, exposures);
 if isempty(result.error)
     title = 'Multisection acquisition complete!';
     body = sprintf('Finished in %d hours, %d minutes, and %d seconds', ...
         floor(result.elapsed/60/60), floor(result.elapsed/60), ...
-        mod(result.elapsed, 60));
+        round(mod(result.elapsed, 60)));
     color = 'good';
 else
     title = 'Multisection acquisition failed...';
@@ -152,34 +156,35 @@ end
 notifyUsers(users, title, body, color);
     
 % Post-processing
-doConvert = handles.AutoConvert.value;
-doAsc = handles.SaveASC.value;
-doCellCount = handles.CountCells.value;
-sections = str2double(strsplit(handles.Sections.String,','));
+doConvert = handles.AutoConvert.Value;
+doAsc = handles.SaveASC.Value;
+doCellCount = handles.CountCells.Value;
+pairs = handles.Pairs.Data;
 if doConvert
-    t = timer;
-    t.TimerFcn = @(~,~)postProcess(result.store, dir, subject, sections, ...
-        [], doAsc, doCellCount);
-    start(t)
+    fprintf('Converting...\n');
+    postProcess(result.store, dir, subject, [], doAsc, doCellCount, pairs);
+    fprintf('Done converting.\n');
 end
-
 
 % --- Executes on button press in Convert.
 function Convert_Callback(hObject, eventdata, handles)
 % hObject    handle to Convert (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+if ~isfield(handles, 'mm')
+    error('No MicroManager environment open. Please Start MicroManager.');
+end
 dir = handles.DataDir.String;
 subject = handles.Subject.String;
-doAsc = handles.SaveASC.value;
-doCellCount = handles.CountCells.value;
-sections = str2double(strsplit(handles.Sections.String,','));
+doAsc = handles.SaveASC.Value;
+doCellCount = handles.CountCells.Value;
+pairs = handles.Pairs.Data;
+mm = handles.mm;
 store = mm.displays().getCurrentWindow().getDatastore();
-t = timer;
-t.TimerFcn = @(~,~)postProcess(store, dir, subject, sections, [], ...
-    doAsc, doCellCount);
-start(t);
+fprintf('Converting...\n');
+postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);
+fprintf('Done converting.\n');
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
