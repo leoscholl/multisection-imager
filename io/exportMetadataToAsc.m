@@ -1,5 +1,6 @@
 function exportMetadataToAsc(metadata, subject, datadir)
-% exportCellsToAsc stitch images per ROI and save cells to ASC format
+%exportMetadataToAsc Save an ASC format file with metadata information
+% regarding reference points, image data, convex hulls, and cell markers
 
 if ~isfield(metadata, 'rois')
     error('No ROI metadata. Exporting requires at least one ROI');

@@ -50,9 +50,17 @@ for row=1:size(Row, 1)
         pl.replacePosition(l, replaceZ(pos, focusInterp(row, col)));
     end
 end
-    
+   
+% Update the position list in the GUI
 mm.compat().setPositionList(pl);
-    
+
+% Display a verification figure
+figure('Name','Focus grid')
+imagesc(focusInterp);
+xlabel('Grid column')
+ylabel('Grid row')
+colormap jet; colorbar
+
 end
 
 function [pos, l] = getPositionByGrid(pl, row, col)

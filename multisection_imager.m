@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 08-May-2018 13:34:12
+% Last Modified by GUIDE v2.5 10-May-2018 13:45:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,8 +56,9 @@ function multisection_imager_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 if length(varargin) == 1
     handles.mm = varargin{1};
+elseif evalin( 'base', 'exist(''mm'',''var'') == 1' )
+    handles.mm = evalin('base','mm');
 end
-
 % Update handles structure
 guidata(hObject, handles);
 
@@ -82,10 +83,6 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-if isfield(handles, 'mm')
-    assignin('base', 'mm', handles.mm)
-    pause(0.5);
-end
 delete(hObject);
 
 % --- Executes on button press in StartMM.
@@ -94,6 +91,8 @@ function StartMM_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 mm = mmInit;
+assignin('base', 'mm', mm);
+pause(0.1); % allow interrupt callback
 handles.mm = mm;
 guidata(handles.figure1, handles)
 
@@ -102,13 +101,20 @@ function PreFocus_Callback(hObject, eventdata, handles)
 % hObject    handle to PreFocus (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if ~isfield(handles, 'mm')
+    fprintf(2, 'No MicroManager environment open. Please Start MicroManager.\n');
+    return;
+end
 mm = handles.mm;
 if checkPositionList(mm) == 0
-    handles.PositionListError.Visible = 1;
+    handles.PositionListError.Visible = 'on';
+    return;
 else
-    handles.PositionListError.Visible = 0;
-    preFocus(mm);
+    handles.PositionListError.Visible = 'off';
 end
+gridSize = str2double(strsplit(handles.Grid.String,{' ',','},...
+    'CollapseDelimiters',true));
+preFocus(mm, gridSize);
 
 % --- Executes on button press in Start.
 function Start_Callback(hObject, eventdata, handles)
@@ -116,29 +122,39 @@ function Start_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if ~isfield(handles, 'mm')
-    error('No MicroManager environment open. Please Start MicroManager.');
+    fprintf(2, 'No MicroManager environment open. Please Start MicroManager.\n');
+    return;
 end
 mm = handles.mm;
 if checkPositionList(mm) == 0
-    handles.PositionListError.Visible = 1;
+    handles.PositionListError.Visible = 'on';
     return;
 else
-    handles.PositionListError.Visible = 0;
+    handles.PositionListError.Visible = 'off';
 end
 
 title = 'Starting acquisition';
 body = 'You will be notified when it is finished';
 color = '#439FE0';
-users = strtrim(strsplit(handles.User.String,','));
+users = strtrim(strsplit(handles.User.String,{' ',','},...
+    'CollapseDelimiters',true));
 notifyUsers(users, title, body, color);
 
 % Acquisition
 dir = handles.DataDir.String;
 subject = handles.Subject.String;
 slide = handles.Slide.String;
+if isempty(dir) || isempty(subject) || isempty(slide)
+    handles.FileError.Visible = 'on';
+    return;
+else
+    handles.Error.Visible = 'off';
+end
 filepath = fullfile(dir, subject, slide);
-channels = strtrim(strsplit(handles.Channels.String,','));
-exposures = str2double(strsplit(handles.Exposures.String,','));
+channels = strtrim(strsplit(handles.Channels.String,{' ',','},...
+    'CollapseDelimiters',true));
+exposures = str2double(strsplit(handles.Exposures.String,{' ',','},...
+    'CollapseDelimiters',true));
 fprintf('Acquiring...\n');
 
 result = acquireMultiple(mm, filepath, channels, exposures);
@@ -172,19 +188,29 @@ function Convert_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if ~isfield(handles, 'mm')
-    error('No MicroManager environment open. Please Start MicroManager.');
+    fprintf(2, 'No MicroManager environment open. Please Start MicroManager.\n');
+    return;
 end
 dir = handles.DataDir.String;
 subject = handles.Subject.String;
+if isempty(dir) || isempty(subject)
+    handles.FileError.Visible = 'on';
+    return;
+else
+    handles.Error.Visible = 'off';
+end
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
 pairs = handles.Pairs.Data;
 mm = handles.mm;
-store = mm.displays().getCurrentWindow().getDatastore();
-fprintf('Converting...\n');
-postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);
-fprintf('Done converting.\n');
-
+windows = mm.displays().getAllImageWindows().toArray();
+for w = 1:length(windows)
+    name = windows(w).getName();
+    store = windows(w).getDatastore();
+    fprintf('Converting %s...\n', name);
+    postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);
+    fprintf('Done converting %s.\n', name);
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -280,3 +306,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes during object creation, after setting all properties.
+function Grid_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Grid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

@@ -2,10 +2,10 @@ function mm = mmInit
 % mmInit Start MM2
 import org.micromanager.internal.MMStudio;
 mm = MMStudio(false);
-% Wait for mm to load
-mm.core().waitForSystem();
-% Set presets
 try
+    % Wait for mm to load
+    mm.core().waitForSystem();
+    % Set presets
     mm.core().setProperty('XYStage', 'StepSize', 0.05);
     mm.core().setProperty('ZeissHalogenLamp', 'State', true);
     mm.core().setProperty('DObjective', 'Label', '10x');

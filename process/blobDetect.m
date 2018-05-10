@@ -16,20 +16,23 @@ sigmaBg = 30/pixelSize;
 minSize = round(pi*5^2/pixelSize^2); % 5-12 um radius
 maxSize = round(pi*12^2/pixelSize^2);
 
-% gaussian filter
-f = imgaussfilt(double(img), sigmaFg);
+% difference of gaussian filter
+% h = fspecial('gaussian', round(sigmaBg*3)*2+1, sigmaFg) - ...
+%     fspecial('gaussian', round(sigmaBg*3)*2+1, sigmaBg);
+% f = imfilter(double(img), h);
+f = imgaussfilt(double(img), sigmaFg); % seems faster
+f = f - imgaussfilt(f,sigmaBg);
 
-% subtract background
-minusBg = f - imgaussfilt(f,sigmaBg);
-f = [];
-for c = 1:size(minusBg,3)
-    s = std2(minusBg(:,:,c));
-    minusBg(:,:,c) = mat2gray(minusBg(:,:,c), [-3*s, 3*s]);
+% normalize
+for c = 1:size(f,3)
+    s = std2(f(:,:,c));
+    m = mean2(f(:,:,c));
+    f(:,:,c) = mat2gray(f(:,:,c), [m-3*s, m+3*s]);
 end
 
 % normalize local contrast
-localContrast=sqrt(imgaussfilt(minusBg.^2,sigmaBg));
-localNormalized=single(minusBg./localContrast);
+localContrast=sqrt(imgaussfilt(f.^2,sigmaBg));
+localNormalized=single(f./localContrast);
 
 localContrast = [];
 
@@ -39,8 +42,9 @@ for p = 1:size(pairs, 1)
     channel = pairs(p,1);
     reference = pairs(p,2);
     
-    % find the candidate cells by thresholding
-    b1 = imbinarize(minusBg(:,:,channel),0.99);
+    % find the candidate cells by thresholding the filtered difference
+    diff = f(:,:,channel) - f(:,:,reference);
+    b1 = imbinarize(diff,0.9-0.5);
     b1 = imfill(b1,'holes');
     se = strel('disk', round(5/pixelSize));
     b1 = imclose(b1, se);
