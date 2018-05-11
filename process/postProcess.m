@@ -2,9 +2,6 @@ function postProcess(store, datadir, subject, makeFlats, ...
     doAsc, doCellCount, cellCountChannelPairs)
 % postProcess Make stitched images from the raw acquisition in store
 
-if ~exist('makeFlats', 'var') || isempty(makeFlats)
-    makeFlats = false;
-end
 if ~exist('doCellCount', 'var') || isempty(doCellCount)
     doCellCount = false;
 end
@@ -16,6 +13,9 @@ end
 
 % Flat field
 background = [];
+if ~exist('makeFlats', 'var') || isempty(makeFlats)
+    makeFlats = size(img,4) > 500; % by default only if image is large
+end
 if ~makeFlats
     try
         m = load('F:\Leo\Background\flatfields.mat');
@@ -30,7 +30,7 @@ if ~makeFlats
 end
 if makeFlats
     flats = generateFlats(img, metadata);
-    save('flatfields-temp.mat', 'flats');
+    save('F:\Leo\Background\flatfields-temp.mat', 'flats');
 end
 img = batchFlatfield(img, flats, background);
 
@@ -46,13 +46,13 @@ if doAsc && doCellCount
 end
 
 % Save to disk
+writeImages(img, metadata, subject, datadir);
 if doAsc
-    writeImages(img, metadata, subject, datadir);
     exportMetadataToAsc(metadata, subject, datadir);
-else
-    writeImages(img, metadata, subject, datadir);
 end
-
+if doCellCount
+    exportMetadata(metadata, subject, datadir);
+end
 end
 
 % Register

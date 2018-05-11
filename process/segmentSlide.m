@@ -12,7 +12,7 @@ end
 I = stitchImg(img, metadata, downsample, []);
 
 % Filter and threshold
-sigma = 20;
+sigma = 400/downsample;
 f = imgaussfilt(I(:,:,end), sigma);
 f = imbinarize(f, 'global');
 
@@ -21,8 +21,8 @@ f = imfill(f, 'holes');
 stats = regionprops(f, 'BoundingBox', 'Area', 'ConvexHull');
 
 % Display
-fig = figure('Visible','off','Name',...
-    'Please label each slice and make sure the boundaries are correct');
+fig = figure('Visible','off','Name',metadata.filepath);
+warning('off', 'Images:initSize:adjustingMag');
 imshow(I(:,:,end), [min(min(I(:,:,end))), max(max(I(:,:,end)))]);
 set(gca,'units','pixels')
 x = get(gca,'position');
@@ -33,8 +33,7 @@ set(gca,'units','normalized','position',[0 0 1 1]);
 set(fig,'units','normalized');
 s = fliplr(size(I(:,:,end)));
 
-% Draw bounding boxes
-% TODO: label bounding boxes with section number
+% Draw bounding boxes and labels
 minArea = round(50*10^6/metadata.pixelSize^2/downsample^2);
 maxArea = round(500*10^6/metadata.pixelSize^2/downsample^2);
 roi = {};
@@ -48,7 +47,7 @@ for n = 1:length(stats)
         addNewPositionCallback(roi{i}, @(p)updateLabel(p, i));
         label{i} = uicontrol(fig, 'Style', 'edit',...
             'Units', 'normalized', 'Position', ...
-            [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 10/y(1) 10/y(2)]);
+            [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 0.03 0.03]);
         hull{i} = stats(n).ConvexHull;
         i = i + 1;
     end
@@ -61,7 +60,7 @@ ref = {};
         uiwait(fig);
     end
     function updateLabel(p, i)
-        label{i}.Position = [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 10/y(1) 10/y(2)];
+        label{i}.Position = [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 0.03 0.03];
     end
 
 if confirmation
@@ -74,13 +73,14 @@ if confirmation
 end
 
 % Collect ROIs with corresponding convex hulls
+sections = [];
 rois = [];
-hulls = [];
+hulls = {};
 i = 1;
 for n = 1:length(roi)
     if isvalid(roi{n})
         rois(i,:) = getPosition(roi{n});
-        sections(i) = str2double(label{i}.String);
+        sections(i) = str2double(label{n}.String);
         if isnan(sections(i))
             sections(i) = -i;
         end

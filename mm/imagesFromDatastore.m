@@ -59,5 +59,6 @@ end
 metadata.position = position;
 metadata.height = height;
 metadata.width = width;
+metadata.filepath = char(store.getSavePath());
 
 fprintf('\n');

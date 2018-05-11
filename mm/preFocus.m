@@ -42,7 +42,8 @@ for row=1:size(focusRow, 1)
 end
 
 [Col, Row] = meshgrid(1:cols,1:rows);
-focusInterp = interp2(focusCol, focusRow, focusVal, Col, Row, 'spline');
+F = scatteredInterpolant(focusCol(:), focusRow(:), focusVal(:));
+focusInterp = F(Col, Row);
 
 for row=1:size(Row, 1)
     for col=1:size(Col, 2)

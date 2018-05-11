@@ -5,7 +5,7 @@ msg = '';
 for n = 1:size(metadata.rois,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing asc file %d/%d', n, size(metadata.rois,1));
+    msg = sprintf('writing mat file %d/%d', n, size(metadata.rois,1));
     fprintf(msg)
     
     datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));

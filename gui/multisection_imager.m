@@ -62,6 +62,9 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+% Set users menu
+users = listUsers();
+handles.User.String = users;
 % UIWAIT makes multisection_imager wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -112,8 +115,12 @@ if checkPositionList(mm) == 0
 else
     handles.PositionListError.Visible = 'off';
 end
-gridSize = str2double(strsplit(handles.Grid.String,{' ',','},...
-    'CollapseDelimiters',true));
+if isempty(handles.Grid.String)
+    gridSize = [];
+else
+    gridSize = str2double(strsplit(handles.Grid.String,{' ',','},...
+        'CollapseDelimiters',true));
+end
 preFocus(mm, gridSize);
 
 % --- Executes on button press in Start.
@@ -136,8 +143,8 @@ end
 title = 'Starting acquisition';
 body = 'You will be notified when it is finished';
 color = '#439FE0';
-users = strtrim(strsplit(handles.User.String,{' ',','},...
-    'CollapseDelimiters',true));
+users = strtrim(strsplit(handles.User.String{handles.User.Value},...
+    {' ',','}, 'CollapseDelimiters',true));
 notifyUsers(users, title, body, color);
 
 % Acquisition
@@ -206,6 +213,9 @@ mm = handles.mm;
 windows = mm.displays().getAllImageWindows().toArray();
 for w = 1:length(windows)
     name = windows(w).getName();
+    if strcmp(name, 'Snap/Live View')
+        continue;
+    end
     store = windows(w).getDatastore();
     fprintf('Converting %s...\n', name);
     postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);

@@ -13,11 +13,13 @@ for c = 1:size(img,3)
     downsample = 50;
     metadata = segmentSlide(img, metadata, downsample, false);
     toFilter = [];
-    for n = 1:size(metadata.rois,1)
-        [~, ~, inBounds, ~] = calculateBounds(metadata, metadata.rois(n,:));
+    for n = 1:length(metadata.hulls)
+        [~, ~, inBounds] = calculateBounds(metadata, [], metadata.hulls{n},true);
         toFilter = union(toFilter, inBounds);
     end
-    
+    if length(toFilter) < 100
+        warning('Too few images to generate good flat-field');
+    end
     filt = zeros(size(img,1),size(img,2), length(toFilter), 'uint16');
     
     for n = 1:length(toFilter)
