@@ -2,15 +2,15 @@ function exportMetadataToAsc(metadata, subject, datadir)
 %exportMetadataToAsc Save an ASC format file with metadata information
 % regarding reference points, image data, convex hulls, and cell markers
 
-if ~isfield(metadata, 'rois')
-    error('No ROI metadata. Exporting requires at least one ROI');
+if ~isfield(metadata, 'sections')
+    error('No section metadata. Exporting requires at least one section');
 end
 
 msg = '';
-for n = 1:size(metadata.rois,1)
+for n = 1:size(metadata.sections,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing asc file %d/%d', n, size(metadata.rois,1));
+    msg = sprintf('writing asc file %d/%d', n, size(metadata.sections,1));
     fprintf(msg)
     
     datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));
@@ -24,7 +24,10 @@ for n = 1:size(metadata.rois,1)
     
     % Reference point
     ref = [0 0];
-    [~, ~, ~, offset] = calculateBounds(metadata, metadata.rois(n,:));
+    offset = [0 0];
+    if isfield(metadata, 'rois')
+        [~, ~, ~, offset] = calculateBounds(metadata, metadata.rois(n,:));
+    end
     if isfield(metadata, 'refs')
         ref = metadata.refs(n,:) - offset;
     end
