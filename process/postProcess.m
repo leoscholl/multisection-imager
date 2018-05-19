@@ -9,7 +9,16 @@ if ~exist('cellCountChannelPairs', 'var') || isempty(cellCountChannelPairs)
     cellCountChannelPairs = {'mCherry', 'GFP'}; % 'GFP', 'mCherry'; 'BFP', 'GFP'};
 end
 
+% Load images
 [img, metadata] = imagesFromDatastore(store);
+
+% Load any existing metadata
+[~, filename, ~] = fileparts(metadata.filepath);
+metafile = fullfile(metadata.filepath, strcat(filename, '.mat'));
+if exist(metafile, 'file')
+    load(metafile, 'metadata');
+end
+
 
 % Flat field
 background = [];
@@ -38,7 +47,10 @@ img = batchFlatfield(img, flats, background);
 img = imgNormalize(img);
 
 % Segment
-metadata = segmentSlide(img, metadata);
+if ~isfield(metadata, 'sections') || ~isfield(metadata, 'rois') || ...
+        isempty(metadata.sections) || isempty(metadata.rois)
+    metadata = segmentSlide(img, metadata);
+end
 
 % Find blobs
 if doAsc && doCellCount
@@ -46,7 +58,7 @@ if doAsc && doCellCount
 end
 
 % Save to disk
-writeImages(img, metadata, subject, datadir);
+metadata = writeImages(img, metadata, subject, datadir);
 if doAsc
     exportMetadataToAsc(metadata, subject, datadir);
 end

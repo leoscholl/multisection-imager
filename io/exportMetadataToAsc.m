@@ -5,15 +5,20 @@ function exportMetadataToAsc(metadata, subject, datadir)
 if ~isfield(metadata, 'sections')
     error('No section metadata. Exporting requires at least one section');
 end
+if ~isfield(metadata, 'imagepath') || isempty(metadata.imagepath) || ...
+    size(metadata.imagepath,1) < size(metadata.rois,1) || ...
+    size(metadata.imagepath,2) < length(metadata.channels)
+    error('No filepath metadata. Save files before exporting.');
+end
 
 msg = '';
-for n = 1:size(metadata.sections,1)
+for n = 1:length(metadata.sections)
     
     fprintf(repmat('\b',1,length(msg)));
     msg = sprintf('writing asc file %d/%d', n, size(metadata.sections,1));
     fprintf(msg)
     
-    datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));
+    datapath = fullfile(datadir, subject, 'ASC');
     if ~exist(datapath, 'dir')
         mkdir(datapath);
     end
@@ -36,9 +41,7 @@ for n = 1:size(metadata.sections,1)
     fprintf(f, ';\tV3 text file written by multisection-imager in MATLAB.\n');
     fprintf(f, '(ImageCoords \n');
     for c = 1:length(metadata.channels)
-        filename = sprintf('%s Sect %d %s.tiff', ...
-            subject, metadata.sections(n), metadata.channels{c});
-        filepath = fullfile(datapath, filename);
+        filepath = metadata.imagepath{n,c};
         fprintf(f, 'Filename "%s" Merge 65535 65535 65535 0\n', filepath);
         fprintf(f, 'Coords %f %f %f %f %f\n', ...
             metadata.pixelSize, metadata.pixelSize,...

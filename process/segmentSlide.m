@@ -21,8 +21,7 @@ f = imfill(f, 'holes');
 stats = regionprops(f, 'BoundingBox', 'Area', 'ConvexHull');
 
 % Display
-fig = figure('Visible','off','Name',metadata.filepath);
-warning('off', 'Images:initSize:adjustingMag');
+fig = figure('Name',metadata.filepath);
 imshow(I(:,:,end), [min(min(I(:,:,end))), max(max(I(:,:,end)))]);
 set(gca,'units','pixels')
 x = get(gca,'position');
@@ -42,7 +41,6 @@ i = 1;
 for n = 1:length(stats)
     if stats(n).Area > minArea && stats(n).Area < maxArea
         p = stats(n).BoundingBox;
-        z = zoom(fig);
         roi{i} = imrect(gca,p);
         addNewPositionCallback(roi{i}, @(p)updateLabel(p, i));
         label{i} = uicontrol(fig, 'Style', 'edit',...

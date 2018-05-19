@@ -1,13 +1,10 @@
-function writeImages(img, metadata, subject, datadir, suffix, downsample)
+function metadata = writeImages(img, metadata, subject, datadir, downsample)
 % writeImages stitch images per ROI and save to disk
 resolution = 10000/metadata.pixelSize; % um/pixel -> pixels/cm
 channels = metadata.channels;
 
 if ~exist('downsample', 'var')
     downsample = 1;
-end
-if ~exist('suffix', 'var')
-    suffix = '';
 end
 
 msg = '';
@@ -23,13 +20,11 @@ for n = 1:size(metadata.rois,1)
         mkdir(datapath);
     end
     for c = 1:size(I,3)
-        filename = sprintf('%s Sect %d %s', ...
+        filename = sprintf('%s Sect %d %s.tiff', ...
             subject, metadata.sections(n), channels{c});
-        if ~isempty(suffix)
-            filename = [filename, ' ', suffix];
-        end
         filepath = fullfile(datapath, filename);
-        t = Tiff([filepath, '.tiff'], 'w');
+        metadata.imagepath{n,c} = filepath;
+        t = Tiff(filepath, 'w');
         tags = struct;
         tags.ImageLength = size(I,1);
         tags.ImageWidth = size(I,2);
