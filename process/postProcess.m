@@ -22,25 +22,26 @@ end
 
 % Flat field
 background = [];
+flats = zeros(size(img,1),size(img,2),size(img,3),'like',img);
 if ~exist('makeFlats', 'var') || isempty(makeFlats)
     makeFlats = size(img,4) > 500; % by default only if image is large
 end
-if ~makeFlats
-    try
-        m = load('F:\Leo\Background\flatfields.mat');
-        for c = 1:size(img,3)
-            channelName = metadata.channels{c};
-            flats(:,:,c) = m.flatfields.(channelName);
-        end
-        background = m.flatfields.background;
-    catch e
-        makeFlats = true;
+try
+    m = load('F:\Leo\Background\flatfields.mat');
+    for c = 1:size(img,3)
+        channelName = metadata.channels{c};
+        flats(:,:,c) = m.flatfields.(channelName);
     end
+    background = m.flatfields.background;
+catch e
+    makeFlats = true;
 end
 if makeFlats
     flats = generateFlats(img, metadata);
     save('F:\Leo\Background\flatfields-temp.mat', 'flats');
 end
+metadata.flats = flats;
+metadata.background = background;
 img = batchFlatfield(img, flats, background);
 
 % Normalize and downsample
@@ -59,12 +60,9 @@ end
 
 % Save to disk
 metadata = writeImages(img, metadata, subject, datadir);
+exportMetadata(metadata, subject, datadir);
 if doAsc
     exportMetadataToAsc(metadata, subject, datadir);
-end
-if doCellCount
-    exportMetadata(metadata, subject, datadir);
-end
 end
 
 % Register
