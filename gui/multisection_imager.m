@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 10-May-2018 13:45:43
+% Last Modified by GUIDE v2.5 22-May-2018 12:51:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,13 +58,22 @@ if length(varargin) == 1
     handles.mm = varargin{1};
 elseif evalin( 'base', 'exist(''mm'',''var'') == 1' )
     handles.mm = evalin('base','mm');
+else
+    handles.mm = mmInit;
 end
+handles.uiPrefsList = {'DataDir', ...
+    'Channels', 'Exposures', 'Grid', 'AutoConvert', ...
+    'SaveASC', 'CountCells'};
 % Update handles structure
 guidata(hObject, handles);
 
 % Set users menu
 users = listUsers();
 handles.User.String = users;
+
+% Load preferences
+loadPrefs(handles);
+
 % UIWAIT makes multisection_imager wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -86,18 +95,8 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
+savePrefs(handles);
 delete(hObject);
-
-% --- Executes on button press in StartMM.
-function StartMM_Callback(hObject, eventdata, handles)
-% hObject    handle to StartMM (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-mm = mmInit;
-assignin('base', 'mm', mm);
-pause(0.1); % allow interrupt callback
-handles.mm = mm;
-guidata(handles.figure1, handles)
 
 % --- Executes on button press in PreFocus.
 function PreFocus_Callback(hObject, eventdata, handles)
@@ -163,7 +162,7 @@ channels = strtrim(strsplit(handles.Channels.String,{' ',','},...
 exposures = str2double(strsplit(handles.Exposures.String,{' ',','},...
     'CollapseDelimiters',true));
 fprintf('Acquiring...\n');
-
+setStatus(handles, 'Acquiring...');
 result = acquireMultiple(mm, filepath, channels, exposures);
 if isempty(result.error)
     title = 'Multisection acquisition complete!';
@@ -177,17 +176,18 @@ else
     color = 'danger';
 end
 notifyUsers(users, title, body, color);
-    
 % Post-processing
 doConvert = handles.AutoConvert.Value;
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
 pairs = handles.Pairs.Data;
 if doConvert
-    fprintf('Converting...\n');
+    fprintf('Exporting...\n');
+    setStatus(handles, 'Exporting...');
     postProcess(result.store, dir, subject, [], doAsc, doCellCount, pairs);
-    fprintf('Done converting.\n');
+    fprintf('Done exporting.\n');
 end
+setStatus(handles, '');
 
 % --- Executes on button press in Convert.
 function Convert_Callback(hObject, eventdata, handles)
@@ -218,10 +218,112 @@ for w = 1:length(windows)
     end
     store = windows(w).getDatastore();
     fprintf('Converting %s...\n', name);
+    setStatus(handles, 'Exporting...');
     postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);
     fprintf('Done converting %s.\n', name);
 end
+setStatus(handles, '');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Preference saving and other helper fns   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% --- Sets the title with a status indication
+function setStatus(handles, text)
+if isempty(text)
+    set(handles.figure1, 'Name', 'Multisection Imager');
+else
+    set(handles.figure1, 'Name', ['Multisection Imager - ', text]);
+end
+drawnow;
+
+% --- Executes on selection change in User.
+function User_Callback(hObject, eventdata, handles)
+% hObject    handle to User (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns User contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from User
+loadPrefs(handles, handles.User.String{handles.User.Value});
+
+% --- Loads preferences.
+function loadPrefs(handles, user)
+uiPrefsList = handles.uiPrefsList;
+prfgroup = 'multisection_imager';
+if ~exist('user', 'var') || isempty(user)
+    if ispref(prfgroup, 'User')
+        user = getpref(prfgroup, 'User');
+    end
+end
+userValue = find(ismember(handles.User.String, user));
+if ~isempty(user) && ~isempty(userValue)
+    handles.User.Value = userValue;
+    prfgroup = strcat('multisection_imager_', user);
+end
+for i = 1:length(uiPrefsList)
+    prfname = uiPrefsList{i};
+    if ispref(prfgroup,prfname) %pref exists
+        if isfield(handles, prfname) %ui widget exists
+            myhandle = handles.(prfname);
+            prf = getpref(prfgroup,prfname);
+            uiType = get(myhandle,'Style');
+            switch uiType
+                case 'edit'
+                    if ischar(prf)
+                        set(myhandle, 'String', prf);
+                    else
+                        set(myhandle, 'String', num2str(prf));
+                    end
+                case 'checkbox'
+                    if islogical(prf) || isnumeric(prf)
+                        set(myhandle, 'Value', prf);
+                    end
+                case 'popupmenu'
+                    str = get(myhandle,'String');
+                    if isnumeric(prf) && prf <= length(str)
+                        set(myhandle, 'Value', prf);
+                    end
+                case 'listbox'
+                    if iscellstr(prf) || ischar(prf)
+                        set(myhandle, 'String', prf);
+                    end
+            end
+        end
+    end
+end
+drawnow
+
+% --- Stores preferences.
+function savePrefs(handles)
+uiPrefsList = handles.uiPrefsList;
+user = handles.User.String{handles.User.Value};
+setpref('multisection_imager', 'User', user);
+if isempty(user)
+    prfgroup = 'multisection_imager';
+else
+    prfgroup = strcat('multisection_imager_', user);
+end
+for i = 1:length(uiPrefsList)
+    prfname = uiPrefsList{i};
+    myhandle = handles.(prfname);
+    uiType = get(myhandle,'Style');
+    switch uiType
+        case 'edit'
+            prf = get(myhandle, 'String');
+            setpref(prfgroup, prfname, prf);
+        case 'checkbox'
+            prf = get(myhandle, 'Value');
+            if ~islogical(prf); prf=logical(prf);end
+            setpref(prfgroup, prfname, prf);
+        case 'popupmenu'
+            prf = get(myhandle, 'Value');
+            setpref(prfgroup, prfname, prf);
+        case 'listbox'
+            prf = get(myhandle, 'String');
+            setpref(prfgroup, prfname, prf);
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CreateFcns - below functions are useless %
@@ -327,3 +429,5 @@ function Grid_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
