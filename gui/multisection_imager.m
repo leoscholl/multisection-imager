@@ -96,6 +96,10 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 savePrefs(handles);
+if ~evalin( 'base', 'exist(''mm'',''var'') == 1')
+    assignin( 'base', 'mm', handles.mm);
+    pause(0.1);
+end
 delete(hObject);
 
 % --- Executes on button press in PreFocus.
@@ -233,17 +237,18 @@ function ChangeFlats_Callback(hObject, eventdata, handles)
 % hObject    handle to ChangeFlats (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-metafile = uigetfile('*.mat', 'Open new flatfield metadata');
+[metafile, path] = uigetfile('*.mat', 'Open new flatfield metadata');
 if isempty(metafile)
     return
 end
-load(metafile, 'metadata');
+load(fullfile(path, metafile), 'metadata');
 if ~exist('metadata', 'var') || ~isfield(metadata, 'flats')
     error('No flat fields found in that file');
 end
-filepath = uiputfile('*.mat', ...
+[file, path] = uiputfile('*.mat', ...
     'Choose a location for the default flat field images', ...
     'F:\Leo\Background\flatfields.mat');
+filepath = fullfile(path, file);
 updateFlats(metadata.flats, metadata.channels, metadata.background, ...
     filepath);
 handles.DefaultFlats.String = filepath;
