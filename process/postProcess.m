@@ -1,4 +1,4 @@
-function postProcess(store, datadir, subject, makeFlats, ...
+function postProcess(store, datadir, subject, makeFlats, defaultFlats, ...
     doAsc, doCellCount, cellCountChannelPairs)
 % postProcess Make stitched images from the raw acquisition in store
 
@@ -27,18 +27,17 @@ if ~exist('makeFlats', 'var') || isempty(makeFlats)
     makeFlats = size(img,4) > 500; % by default only if image is large
 end
 try
-    m = load('F:\Leo\Background\flatfields.mat');
+    m = load(defaultFlats);
     for c = 1:size(img,3)
         channelName = metadata.channels{c};
         flats(:,:,c) = m.flatfields.(channelName);
     end
-    background = m.flatfields.background;
+    background = m.background;
 catch e
     makeFlats = true;
 end
 if makeFlats
     flats = generateFlats(img, metadata);
-    save('F:\Leo\Background\flatfields-temp.mat', 'flats');
 end
 metadata.flats = flats;
 metadata.background = background;

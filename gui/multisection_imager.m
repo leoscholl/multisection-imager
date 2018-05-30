@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 22-May-2018 12:51:18
+% Last Modified by GUIDE v2.5 30-May-2018 14:14:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,7 @@ else
 end
 handles.uiPrefsList = {'DataDir', ...
     'Channels', 'Exposures', 'Grid', 'AutoConvert', ...
-    'SaveASC', 'CountCells'};
+    'SaveASC', 'CountCells', 'DefaultFlats'};
 % Update handles structure
 guidata(hObject, handles);
 
@@ -177,6 +177,7 @@ else
 end
 notifyUsers(users, title, body, color);
 % Post-processing
+defaultFlats = handles.DefaultFlats.String;
 doConvert = handles.AutoConvert.Value;
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
@@ -184,7 +185,8 @@ pairs = handles.Pairs.Data;
 if doConvert
     fprintf('Exporting...\n');
     setStatus(handles, 'Exporting...');
-    postProcess(result.store, dir, subject, [], doAsc, doCellCount, pairs);
+    postProcess(result.store, dir, subject, [], defaultFlats, ...
+        doAsc, doCellCount, pairs);
     fprintf('Done exporting.\n');
 end
 setStatus(handles, '');
@@ -206,6 +208,7 @@ if isempty(dir) || isempty(subject)
 else
     handles.Error.Visible = 'off';
 end
+defaultFlats = handles.DefaultFlats.String;
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
 pairs = handles.Pairs.Data;
@@ -219,10 +222,31 @@ for w = 1:length(windows)
     store = windows(w).getDatastore();
     fprintf('Converting %s...\n', name);
     setStatus(handles, 'Exporting...');
-    postProcess(store, dir, subject, [], doAsc, doCellCount, pairs);
+    postProcess(store, dir, subject, [], defaultFlats, ...
+        doAsc, doCellCount, pairs);
     fprintf('Done converting %s.\n', name);
 end
 setStatus(handles, '');
+
+% --- Executes on button press in ChangeFlats.
+function ChangeFlats_Callback(hObject, eventdata, handles)
+% hObject    handle to ChangeFlats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+metafile = uigetfile('*.mat', 'Open new flatfield metadata');
+if isempty(metafile)
+    return
+end
+load(metafile, 'metadata');
+if ~exist('metadata', 'var') || ~isfield(metadata, 'flats')
+    error('No flat fields found in that file');
+end
+filepath = uiputfile('*.mat', ...
+    'Choose a location for the default flat field images', ...
+    'F:\Leo\Background\flatfields.mat');
+updateFlats(metadata.flats, metadata.channels, metadata.background, ...
+    filepath);
+handles.DefaultFlats.String = filepath;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Preference saving and other helper fns   %
@@ -431,3 +455,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes during object creation, after setting all properties.
+function DefaultFlats_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to DefaultFlats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
