@@ -15,7 +15,7 @@ msg = '';
 for n = 1:length(metadata.sections)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing asc file %d/%d', n, size(metadata.sections,1));
+    msg = sprintf('writing asc file %d/%d', n, length(metadata.sections));
     fprintf(msg)
     
     datapath = fullfile(datadir, subject, 'ASC');
@@ -50,7 +50,7 @@ for n = 1:length(metadata.sections)
     fprintf(f, '); End of ImageCoords\n\n');
     
     % Convex hull metadata
-    if isfield(metadata, 'hulls')
+    if isfield(metadata, 'hulls') && ~isempty(metadata.hulls{n})
         fprintf(f, '("Surface"\n  (Color Cyan)\n  (Closed)\n');
         symbols = ['0':'9','A':'F'];
         nums = randi(length(symbols),[1 32]);
@@ -68,7 +68,10 @@ for n = 1:length(metadata.sections)
     
     % Marker metadata
     if isfield(metadata, 'cells')
-        for c = 1:size(metadata.cells(n,:))
+        for c = 1:size(metadata.cells,2)
+            if isempty(metadata.cells{n,c}.centroid)
+                continue;
+            end
             switch metadata.channels{metadata.cells{n,c}.channel}
                 case 'GFP'
                     fprintf(f, '(FilledCircle\n  (Color Green)\n  (Name "GFP")\n');
@@ -77,7 +80,7 @@ for n = 1:length(metadata.sections)
                 case 'BFP'
                     fprintf(f, '(FilledSquare\n  (Color Blue)\n  (Name "BFP")\n');
             end
-            for p = 1:length(metadata.cells{n,c}.centroid)
+            for p = 1:size(metadata.cells{n,c}.centroid,1)
                 fprintf(f, '  (%.2f %.2f %.2f %.2f)  ; %d\n', ...
                     (metadata.cells{n,c}.centroid(p,1) + ref(1))*metadata.pixelSize, ...
                     -(metadata.cells{n,c}.centroid(p,2) + ref(2))*metadata.pixelSize, ...

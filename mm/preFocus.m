@@ -29,13 +29,19 @@ focusVal = zeros(size(focusCol));
 % turn on live display
 mm.live().setLiveMode(true);
 mm.core().setTimeoutMs(30000);
-for row=1:size(focusRow, 1)
-    for col=1:size(focusCol, 2)
+for rowInd=1:size(focusRow, 1)
+    row = size(focusCol,1) - rowInd + 1;
+    for colInd=1:size(focusCol, 2)
+        if mod(row,2) == 1
+            col = colInd;
+        else
+            col = size(focusCol,2) - colInd + 1;
+        end
         pos = getPositionByGrid(pl, focusRow(row, col), focusCol(row, col));
         mm.core().setXYPosition('XYStage', pos.getX(), pos.getY());
         mm.core().waitForDevice('XYStage');
         h = msgbox(sprintf('Focus at the current position (%d of %d)', ...
-            col+size(focusCol,2)*(row-1), size(focusRow,1)*size(focusRow,2)));
+            colInd+size(focusCol,2)*(rowInd-1), size(focusRow,1)*size(focusRow,2)));
         uiwait(h);
         focusVal(row, col) = mm.core().getPosition();
     end

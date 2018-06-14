@@ -19,12 +19,12 @@ if exist(metafile, 'file')
     load(metafile, 'metadata');
 end
 
-
 % Flat field
 background = [];
 flats = zeros(size(img,1),size(img,2),size(img,3),'like',img);
 if ~exist('makeFlats', 'var') || isempty(makeFlats)
-    makeFlats = size(img,4) > 500; % by default only if image is large
+    % by default only if image is large
+    makeFlats = ~isfield(metadata, 'flats') && size(img,4) > 500; 
 end
 try
     m = load(defaultFlats);

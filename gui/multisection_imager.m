@@ -54,7 +54,9 @@ function multisection_imager_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for multisection_imager
 handles.output = hObject;
-if length(varargin) == 1
+if length(varargin) == 1 && strcmp(varargin{1}, 'nomm')
+    % no micromanger mode
+elseif length(varargin) == 1
     handles.mm = varargin{1};
 elseif evalin( 'base', 'exist(''mm'',''var'') == 1' )
     handles.mm = evalin('base','mm');
@@ -96,7 +98,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 savePrefs(handles);
-if ~evalin( 'base', 'exist(''mm'',''var'') == 1')
+if ~evalin( 'base', 'exist(''mm'',''var'') == 1') && isfield(handles, 'mm')
     assignin( 'base', 'mm', handles.mm);
     pause(0.1);
 end
@@ -124,7 +126,9 @@ else
     gridSize = str2double(strsplit(handles.Grid.String,{' ',','},...
         'CollapseDelimiters',true));
 end
+setStatus(handles, 'Focusing...');
 preFocus(mm, gridSize);
+setStatus(handles, 'Ready to acquire');
 
 % --- Executes on button press in Start.
 function Start_Callback(hObject, eventdata, handles)
@@ -171,7 +175,7 @@ result = acquireMultiple(mm, filepath, channels, exposures);
 if isempty(result.error)
     title = 'Multisection acquisition complete!';
     body = sprintf('Finished in %d hours, %d minutes, and %d seconds', ...
-        floor(result.elapsed/60/60), floor(result.elapsed/60), ...
+        floor(result.elapsed/60/60), mod(floor(result.elapsed/60), 60), ...
         round(mod(result.elapsed, 60)));
     color = 'good';
 else
@@ -237,8 +241,9 @@ function ChangeFlats_Callback(hObject, eventdata, handles)
 % hObject    handle to ChangeFlats (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[metafile, path] = uigetfile('*.mat', 'Open new flatfield metadata');
-if isempty(metafile)
+dir = handles.DataDir.String;
+[metafile, path] = uigetfile('*.mat', 'Open new flatfield metadata', dir);
+if isempty(metafile) || (length(metafile) == 1 && metafile == 0)
     return
 end
 load(fullfile(path, metafile), 'metadata');

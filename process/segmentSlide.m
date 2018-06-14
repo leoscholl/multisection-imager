@@ -37,6 +37,7 @@ minArea = round(50*10^6/metadata.pixelSize^2/downsample^2);
 maxArea = round(500*10^6/metadata.pixelSize^2/downsample^2);
 roi = {};
 label = {};
+hull = {};
 i = 1;
 for n = 1:length(stats)
     if stats(n).Area > minArea && stats(n).Area < maxArea
@@ -46,6 +47,7 @@ for n = 1:length(stats)
         label{i} = uicontrol(fig, 'Style', 'edit',...
             'Units', 'normalized', 'Position', ...
             [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 0.03 0.03]);
+        addlistener(roi{end}, 'ObjectBeingDestroyed', @(~,~)deleteLabel(i));
         hull{i} = stats(n).ConvexHull;
         i = i + 1;
     end
@@ -57,16 +59,32 @@ ref = {};
         ref{end+1} = impoint(gca);
         uiwait(fig);
     end
+    function addRect(src,event)
+        p = [0 0 100 100];
+        roi{end+1} = imrect(gca,p);
+        addNewPositionCallback(roi{end}, @(p)updateLabel(p, length(roi)));
+        label{end+1} = uicontrol(fig, 'Style', 'edit',...
+            'Units', 'normalized', 'Position', ...
+            [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 0.03 0.03]);
+        addlistener(roi{end}, 'ObjectBeingDestroyed', @(~,~)deleteLabel(length(roi)));
+        hull{end+1} = [];
+        uiwait(fig);
+    end
     function updateLabel(p, i)
         label{i}.Position = [(p(1)+50)/s(1) (s(2)-p(2)-150)/s(2) 0.03 0.03];
+    end
+    function deleteLabel(i)
+        delete(label{i});
     end
 
 if confirmation
     set(fig,'Visible','on');
     addPt = uicontrol('Style', 'pushbutton', 'String', 'Add reference point...',...
         'Position', [20 20 120 30], 'Callback', @addReference);
+    addPt = uicontrol('Style', 'pushbutton', 'String', 'Add section...',...
+        'Position', [150 20 120 30], 'Callback', @addRect);
     cont = uicontrol('Style', 'pushbutton', 'String', 'Looks good!', ...
-        'Position', [150 20 120 30], 'Callback', 'uiresume');
+        'Position', [280 20 120 30], 'Callback', 'uiresume');
     uiwait(fig);
 end
 
