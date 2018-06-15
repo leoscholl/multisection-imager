@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 30-May-2018 14:14:19
+% Last Modified by GUIDE v2.5 15-Jun-2018 15:05:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -257,6 +257,13 @@ filepath = fullfile(path, file);
 updateFlats(metadata.flats, metadata.channels, metadata.background, ...
     filepath);
 handles.DefaultFlats.String = filepath;
+
+% --- Executes on button press in Reload.
+function Reload_Callback(hObject, eventdata, handles)
+% hObject    handle to Reload (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+mmReload(handles.mm);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Preference saving and other helper fns   %
