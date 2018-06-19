@@ -1,15 +1,20 @@
-function [img, metadata] = imagesFromDatastore(store)
+function [img, metadata] = imagesFromDatastore(store, datatype)
 % Collect images from a micromanager datastore
+
+if ~exist('datatype', 'var') || isempty(datatype)
+    datatype = 'uint16';
+end
 
 % Initialize image matrix
 Image = store.getAnyImage();
 height = Image.getHeight();
 width = Image.getWidth();
-bitDepth = Image.getBytesPerPixel();
+bitDepthImage = Image.getBytesPerPixel()*8;
+bitDepthStorage = log2(double(intmax(datatype))-double(intmin(datatype))+1);
 axes = cellstr(char(store.getAxes().toArray()));
 lengths = cellfun(@(x)double(store.getAxisLength(x)), axes);
 lengths = reshape(lengths, 1, length(lengths));
-img = zeros([height, width, lengths], sprintf('uint%d', bitDepth*8));
+img = zeros([height, width, lengths], datatype);
 
 iter = store.getUnorderedImageCoords().iterator;
 msg = '';
@@ -18,10 +23,12 @@ msg = '';
 i = 1;
 while(iter.hasNext)
     
-    fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('loading image %d/%d', i, prod(lengths));
+    if mod(i,10) == 1 || i == prod(lengths)
+        fprintf(repmat('\b',1,length(msg)));
+        msg = sprintf('loading image %d/%d', i, prod(lengths));
+        fprintf(msg)
+    end
     i = i + 1;
-    fprintf(msg)
     
     Coords = iter.next;
     Image = store.getImage(Coords);
@@ -52,9 +59,12 @@ while(iter.hasNext)
     position(c,p,z,t) = data;
     
     % finally, store the image
+    plane = reshape(Image.getRawPixels, width, height)';
+    if (bitDepthStorage < bitDepthImage)
+        plane = plane * (bitDepthStorage/bitDepthImage);
+    end
     img(:,:,Coords.getChannel()+1,Coords.getStagePosition()+1,...
-        Coords.getZ()+1, Coords.getTime()+1) = ...
-        reshape(Image.getRawPixels, width, height)';
+        Coords.getZ()+1, Coords.getTime()+1) = plane;
 end
 metadata.position = position;
 metadata.height = height;

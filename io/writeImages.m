@@ -8,13 +8,14 @@ if ~exist('downsample', 'var')
 end
 
 msg = '';
-for n = 1:size(metadata.rois,1)
+for n = 1:size(metadata.boundaries,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing image %d/%d', n, size(metadata.rois,1));
+    msg = sprintf('writing section %d/%d (%d channels)', ...
+        n, size(metadata.boundaries,1), size(img,3));
     fprintf(msg)
     
-    I = stitchImg(img, metadata, downsample, metadata.rois(n,:));
+    I = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);
     datapath = fullfile(datadir, subject, sprintf('Sect %d', metadata.sections(n)));
     if ~exist(datapath, 'dir')
         mkdir(datapath);

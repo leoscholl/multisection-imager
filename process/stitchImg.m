@@ -1,17 +1,25 @@
-function [I, offset] = stitchImg(img, metadata, downsample, roi)
+function [I, offset] = stitchImg(img, metadata, downsample, roi, poly, strict)
 
 if ~exist('downsample', 'var') || isempty(downsample)
     downsample = 1;
 end
-if ~exist('roi', 'var') || isempty(roi)
+if (~exist('roi', 'var') || isempty(roi)) && (~exist('poly', 'var') || isempty(poly))
     roi = [1 1 Inf Inf];
+end
+if ~exist('roi', 'var')
+    roi = [];
+end
+if ~exist('poly', 'var')
+    poly = [];
+    strict = [];
 end
 
 imgHeight = ceil(size(img,1)/downsample);
 imgWidth = ceil(size(img,2)/downsample);
 alpha = 1.5;
 
-[globalPosY, globalPosX, inBounds, offset] = calculateBounds(metadata, roi);
+[globalPosY, globalPosX, inBounds, offset] = calculateBounds(metadata, roi, poly, strict);
+inBounds = find(inBounds);
 
 globalPosY = ceil(globalPosY/downsample);
 globalPosX = ceil(globalPosX/downsample);

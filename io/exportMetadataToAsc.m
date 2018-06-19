@@ -1,6 +1,6 @@
 function exportMetadataToAsc(metadata, subject, datadir)
 %exportMetadataToAsc Save an ASC format file with metadata information
-% regarding reference points, image data, convex hulls, and cell markers
+% regarding reference points, image data, boundaries, and cell markers
 
 if ~isfield(metadata, 'sections')
     error('No section metadata. Exporting requires at least one section');
@@ -42,25 +42,25 @@ for n = 1:length(metadata.sections)
     fprintf(f, '(ImageCoords \n');
     for c = 1:length(metadata.channels)
         filepath = metadata.imagepath{n,c};
-        fprintf(f, 'Filename "%s" Merge 65535 65535 65535 0\n', filepath);
-        fprintf(f, 'Coords %f %f %f %f %f\n', ...
+        fprintf(f, ' Filename "%s" Merge 65535 65535 65535 0\n', filepath);
+        fprintf(f, ' Coords %g %g %g %g %g\n', ...
             metadata.pixelSize, metadata.pixelSize,...
-            ref(1)*metadata.pixelSize, -ref(2)*metadata.pixelSize, 0);
+            -ref(1)*metadata.pixelSize, ref(2)*metadata.pixelSize, 0);
     end
     fprintf(f, '); End of ImageCoords\n\n');
     
     % Convex hull metadata
-    if isfield(metadata, 'hulls') && ~isempty(metadata.hulls{n})
+    if isfield(metadata, 'boundaries') && ~isempty(metadata.boundaries{n})
         fprintf(f, '("Surface"\n  (Color Cyan)\n  (Closed)\n');
         symbols = ['0':'9','A':'F'];
         nums = randi(length(symbols),[1 32]);
         fprintf(f, '  (GUID "%s")\n', strcat(symbols(nums)));
         fprintf(f, '  (MBFObjectType 5)\n  (Resolution %f)\n',...
             metadata.pixelSize);
-        for p = 1:size(metadata.hulls{n},1)
-            fprintf(f, '  (%.2f %.2f %.2f %.2f)  ;  1, %d\n', ...
-                (metadata.hulls{n}(p,1) - offset(1) + ref(1))*metadata.pixelSize, ...
-                -(metadata.hulls{n}(p,2) - offset(2) + ref(2))*metadata.pixelSize, ...
+        for p = 1:size(metadata.boundaries{n},1)
+            fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ;  1, %d\n', ...
+                (metadata.boundaries{n}(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
+                -(metadata.boundaries{n}(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
                 0, metadata.pixelSize, p);
         end
         fprintf(f, ')  ;  End of contour\n\n');
@@ -81,9 +81,9 @@ for n = 1:length(metadata.sections)
                     fprintf(f, '(FilledSquare\n  (Color Blue)\n  (Name "BFP")\n');
             end
             for p = 1:size(metadata.cells{n,c}.centroid,1)
-                fprintf(f, '  (%.2f %.2f %.2f %.2f)  ; %d\n', ...
-                    (metadata.cells{n,c}.centroid(p,1) + ref(1))*metadata.pixelSize, ...
-                    -(metadata.cells{n,c}.centroid(p,2) + ref(2))*metadata.pixelSize, ...
+                fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\n', ...
+                    (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
+                    -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
                     0, 0, p);
             end
             fprintf(f, ')  ;  End of markers\n\n');

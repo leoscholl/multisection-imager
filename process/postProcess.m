@@ -1,42 +1,58 @@
-function postProcess(store, datadir, subject, makeFlats, defaultFlats, ...
-    doAsc, doCellCount, cellCountChannelPairs)
+function postProcess(store, datadir, subject, varargin)
 % postProcess Make stitched images from the raw acquisition in store
 
-if ~exist('doCellCount', 'var') || isempty(doCellCount)
-    doCellCount = false;
-end
-if ~exist('cellCountChannelPairs', 'var') || isempty(cellCountChannelPairs)
-    cellCountChannelPairs = {'mCherry', 'GFP'}; % 'GFP', 'mCherry'; 'BFP', 'GFP'};
-end
+p = inputParser();
+p.addOptional('makeFlats', '');
+p.addOptional('defaultFlats', '', @ischar);
+p.addOptional('doAsc', false);
+p.addOptional('doCellCount', false);
+p.addOptional('cellCountChannelPairs', {'mCherry', 'GFP'});
+p.addParameter('segmentOnly', false);
+p.parse(varargin{:});
 
 % Load images
-[img, metadata] = imagesFromDatastore(store);
+if p.Results.segmentOnly; datatype = 'uint8';
+else; datatype = 'uint16'; end
+[img, metadata] = imagesFromDatastore(store, datatype);
 
 % Load any existing metadata
 [~, filename, ~] = fileparts(metadata.filepath);
-metafile = fullfile(metadata.filepath, strcat(filename, '.mat'));
+metafile = fullfile(datadir, subject, filename, sprintf('%s.mat', filename));
 if exist(metafile, 'file')
     load(metafile, 'metadata');
 end
 
-% Flat field
-background = [];
-flats = zeros(size(img,1),size(img,2),size(img,3),'like',img);
-if ~exist('makeFlats', 'var') || isempty(makeFlats)
-    % by default only if image is large
-    makeFlats = ~isfield(metadata, 'flats') && size(img,4) > 500; 
+% Optionally just do segmentation and quit
+if p.Results.segmentOnly
+    metadata = segmentSlide(img, metadata);
+    exportMetadata(metadata, subject, datadir);
+    return
 end
+
+% Flat field
+flats = [];
+background = [];
 try
-    m = load(defaultFlats);
+    flats = zeros(size(img,1),size(img,2),size(img,3),'like',img);
+    m = load(p.Results.defaultFlats);
     for c = 1:size(img,3)
         channelName = metadata.channels{c};
         flats(:,:,c) = m.flatfields.(channelName);
     end
     background = m.background;
-catch e
-    makeFlats = true;
+catch
+    flats = [];
+    background = [];
 end
-if makeFlats
+if isfield(metadata, 'flats') && ~isempty(metadata.flats)
+    flats = metadata.flats;
+end
+makeFlats = p.Results.makeFlats;
+if isempty(makeFlats)
+    % by default only if image is large
+    makeFlats = ~isfield(metadata, 'flats') && size(img,4) > 500; 
+end
+if makeFlats || isempty(flats)
     flats = generateFlats(img, metadata);
 end
 metadata.flats = flats;
@@ -53,14 +69,14 @@ if ~isfield(metadata, 'sections') || ~isfield(metadata, 'rois') || ...
 end
 
 % Find blobs
-if doAsc && doCellCount
-    metadata = countCells(img, metadata, cellCountChannelPairs);
+if p.Results.doAsc && p.Results.doCellCount
+    metadata = countCells(img, metadata, p.Results.cellCountChannelPairs);
 end
 
 % Save to disk
 metadata = writeImages(img, metadata, subject, datadir);
 exportMetadata(metadata, subject, datadir);
-if doAsc
+if p.Results.doAsc
     exportMetadataToAsc(metadata, subject, datadir);
 end
 

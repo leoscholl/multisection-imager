@@ -1,19 +1,24 @@
-function b = blobDetect(img, pixelSize, pairs)
+function b = blobDetect(img, pixelSize, pairs, tolerance)
 % blobDetect
 % 
 % INPUTS: 
 %   img - image matrix
 %   pixelSize - metadata
 %   pairs - which channels to detect and which to reference
+%   tolerance - how lenient to be (0 to 1)
 %
 % OUTPUTS:
 %   b - binary image with blobs = 1
 %
 
+if ~exist('tolerance', 'var') || isempty(tolerance)
+    tolerance = 0.5;
+end
+
 % parameters
 sigmaFg = 5/pixelSize; % bandpass with 5-40 um sigma DoG
 sigmaBg = 40/pixelSize; 
-sigmaLc = 50/pixelSize; % determine local contrast with 30 um sigma
+sigmaLc = 40/pixelSize; % to determine local contrast
 minSize = round(pi*5^2/pixelSize^2); % 5-12 um radius
 maxSize = round(pi*12^2/pixelSize^2);
 
@@ -54,7 +59,7 @@ for p = 1:size(pairs, 1)
     diff = localNormalized(:,:,channel) - localNormalized(:,:,reference);
 
     % binarize the new image; and with candidate cells
-    b2 = and(imbinarize(diff, 0.5), b1);
+    b2 = and(imbinarize(diff, 1-tolerance), b1);
     b2 = imfill(b2,'holes');
     se = strel('disk', round(5/pixelSize));
     b2 = imclose(b2, se);

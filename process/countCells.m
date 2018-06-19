@@ -17,18 +17,19 @@ for p = 1:size(channelPairs,1)
 end
 
 msg = '';
-for n = 1:size(metadata.rois,1)
+for n = 1:size(metadata.boundaries,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('finding cells in slice %d/%d', n, size(metadata.rois,1));
+    msg = sprintf('finding cells in slice %d/%d', n, size(metadata.boundaries,1));
     fprintf(msg)
     
-    I = stitchImg(img, metadata, downsample, metadata.rois(n,:));
+    [I,offset] = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);
     b = blobDetect(I, metadata.pixelSize*downsample, pairs);
     for c = 1:size(b,3)
         stats = regionprops(b(:,:,c), 'Centroid');
         metadata.cells{n,c}.channel = pairs(c,1);
-        metadata.cells{n,c}.centroid = cell2mat(struct2cell(stats)')*downsample;
+        metadata.cells{n,c}.centroid = ...
+            (cell2mat(struct2cell(stats)')+offset)*downsample;
     end
 end
 fprintf('\n');

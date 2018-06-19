@@ -71,6 +71,9 @@ guidata(hObject, handles);
 
 % Set users menu
 users = listUsers();
+if isempty(users)
+    users = {''};
+end
 handles.User.String = users;
 
 % Load preferences
@@ -228,11 +231,20 @@ for w = 1:length(windows)
         continue;
     end
     store = windows(w).getDatastore();
-    fprintf('Converting %s...\n', name);
+    fprintf('Segment %s...\n', name);
+    setStatus(handles, 'Segmenting...');
+    postProcess(store, dir, subject, 'segmentOnly', true);
+end
+for w = 1:length(windows)
+    name = windows(w).getName();
+    if strcmp(name, 'Snap/Live View')
+        continue;
+    end
+    store = windows(w).getDatastore();
+    fprintf('Export %s...\n', name);
     setStatus(handles, 'Exporting...');
     postProcess(store, dir, subject, [], defaultFlats, ...
         doAsc, doCellCount, pairs);
-    fprintf('Done converting %s.\n', name);
 end
 setStatus(handles, '');
 
@@ -293,6 +305,7 @@ function loadPrefs(handles, user)
 uiPrefsList = handles.uiPrefsList;
 prfgroup = 'multisection_imager';
 if ~exist('user', 'var') || isempty(user)
+    user = {};
     if ispref(prfgroup, 'User')
         user = getpref(prfgroup, 'User');
     end
