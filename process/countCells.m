@@ -28,8 +28,11 @@ for n = 1:size(metadata.boundaries,1)
     for c = 1:size(b,3)
         stats = regionprops(b(:,:,c), 'Centroid');
         metadata.cells{n,c}.channel = pairs(c,1);
-        metadata.cells{n,c}.centroid = ...
-            (cell2mat(struct2cell(stats)')+offset)*downsample;
+        centroid = cell2mat(struct2cell(stats)').*downsample;
+        if ~isempty(centroid)
+            centroid = centroid + offset;
+        end
+        metadata.cells{n,c}.centroid = centroid;
     end
 end
 fprintf('\n');

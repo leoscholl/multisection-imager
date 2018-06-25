@@ -11,8 +11,8 @@ msg = '';
 for n = 1:size(metadata.boundaries,1)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('writing section %d/%d (%d channels)', ...
-        n, size(metadata.boundaries,1), size(img,3));
+    msg = sprintf('stitching & writing %d images for section %d/%d', ...
+         size(img,3), n, size(metadata.boundaries,1));
     fprintf(msg)
     
     I = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);

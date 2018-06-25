@@ -11,11 +11,7 @@ end
 % Create downsampled fusion
 I = stitchImg(img, metadata, downsample, []);
 
-% Filter and threshold
-sigma = 400/downsample;
-f = imgaussfilt(I(:,:,end), sigma);
-
-[rois, sections, boundaries, refs] = slide_segmenter(I(:,:,end), f, confirmation);
+[rois, sections, boundaries, refs] = slide_segmenter(I, 50/downsample, confirmation, metadata.filepath);
 metadata.sections = sections;
 metadata.rois = rois.*downsample;
 metadata.boundaries = cellfun(@(x)fliplr(x).*downsample,boundaries,'UniformOutput',false);

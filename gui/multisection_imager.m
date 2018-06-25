@@ -199,6 +199,10 @@ if doConvert
     postProcess(result.store, dir, subject, [], defaultFlats, ...
         doAsc, doCellCount, pairs);
     fprintf('Done exporting.\n');
+    title = 'Done exporting';
+    body = 'Acquisition is finished exporting.';
+    color = 'good';
+    notifyUsers(users, title, body, color);
 end
 setStatus(handles, '');
 
@@ -212,8 +216,7 @@ if ~isfield(handles, 'mm')
     return;
 end
 dir = handles.DataDir.String;
-subject = handles.Subject.String;
-if isempty(dir) || isempty(subject)
+if isempty(dir)
     handles.FileError.Visible = 'on';
     return;
 else
@@ -226,7 +229,9 @@ pairs = handles.Pairs.Data;
 mm = handles.mm;
 windows = mm.displays().getAllImageWindows().toArray();
 for w = 1:length(windows)
-    name = windows(w).getName();
+    name = char(windows(w).getName());
+    path = strsplit(fileparts(name), filesep);
+    subject = path{end};
     if strcmp(name, 'Snap/Live View')
         continue;
     end
@@ -236,7 +241,9 @@ for w = 1:length(windows)
     postProcess(store, dir, subject, 'segmentOnly', true);
 end
 for w = 1:length(windows)
-    name = windows(w).getName();
+    name = char(windows(w).getName());
+    path = strsplit(fileparts(name), filesep);
+    subject = path{end};
     if strcmp(name, 'Snap/Live View')
         continue;
     end
@@ -246,6 +253,12 @@ for w = 1:length(windows)
     postProcess(store, dir, subject, [], defaultFlats, ...
         doAsc, doCellCount, pairs);
 end
+title = 'Done exporting';
+body = sprintf('%d acquisitions are finished exporting.', length(windows));
+color = 'good';
+users = strtrim(strsplit(handles.User.String{handles.User.Value},...
+    {' ',','}, 'CollapseDelimiters',true));
+notifyUsers(users, title, body, color);
 setStatus(handles, '');
 
 % --- Executes on button press in ChangeFlats.

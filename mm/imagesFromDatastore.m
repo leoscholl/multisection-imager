@@ -7,9 +7,16 @@ end
 
 % Initialize image matrix
 Image = store.getAnyImage();
+Meta = Image.getMetadata();
 height = Image.getHeight();
 width = Image.getWidth();
-bitDepthImage = Image.getBytesPerPixel()*8;
+scopeData = Meta.getScopeData();
+if scopeData.containsKey('pco_camera-CameraType') && ...
+    strcmp(scopeData.getString('pco_camera-CameraType'), 'SensiCam')
+    bitDepthImage = 12;
+else
+    bitDepthImage = 2^(Image.getBytesPerPixel()*8);
+end
 bitDepthStorage = log2(double(intmax(datatype))-double(intmin(datatype))+1);
 axes = cellstr(char(store.getAxes().toArray()));
 lengths = cellfun(@(x)double(store.getAxisLength(x)), axes);
@@ -61,7 +68,7 @@ while(iter.hasNext)
     % finally, store the image
     plane = reshape(Image.getRawPixels, width, height)';
     if (bitDepthStorage < bitDepthImage)
-        plane = plane * (bitDepthStorage/bitDepthImage);
+        plane = plane * (2^bitDepthStorage/2^bitDepthImage);
     end
     img(:,:,Coords.getChannel()+1,Coords.getStagePosition()+1,...
         Coords.getZ()+1, Coords.getTime()+1) = plane;

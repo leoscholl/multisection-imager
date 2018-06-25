@@ -30,8 +30,8 @@ for n = 1:length(metadata.sections)
     % Reference point
     ref = [0 0];
     offset = [0 0];
-    if isfield(metadata, 'rois')
-        [~, ~, ~, offset] = calculateBounds(metadata, metadata.rois(n,:));
+    if isfield(metadata, 'boundaries')
+        [~, ~, ~, offset] = calculateBounds(metadata, [], metadata.boundaries{n}, false);
     end
     if isfield(metadata, 'refs')
         ref = metadata.refs(n,:) - offset;
@@ -49,7 +49,7 @@ for n = 1:length(metadata.sections)
     end
     fprintf(f, '); End of ImageCoords\n\n');
     
-    % Convex hull metadata
+    % Boundary metadata
     if isfield(metadata, 'boundaries') && ~isempty(metadata.boundaries{n})
         fprintf(f, '("Surface"\n  (Color Cyan)\n  (Closed)\n');
         symbols = ['0':'9','A':'F'];

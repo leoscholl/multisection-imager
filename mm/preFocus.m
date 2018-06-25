@@ -50,6 +50,16 @@ for rowInd=1:size(focusRow, 1)
     end
 end
 
+% Turn off live mode
+mm.live().setLiveMode(false);
+windows = mm.displays().getAllImageWindows().toArray();
+for w = 1:length(windows)
+    name = char(windows(w).getName());
+    if strcmp(name, 'Snap/Live View')
+        windows(w).requestToClose();
+    end
+end
+
 [Col, Row] = meshgrid(1:cols,1:rows);
 F = scatteredInterpolant(focusCol(:), focusRow(:), focusVal(:));
 focusInterp = F(Col, Row);
@@ -74,6 +84,18 @@ colormap jet; colorbar
 
 end
 
+function [pos, l] = getPositionByGrid(pl, row, col)
+% getPositionByGrid Return the position whose column and row match the
+% given column and row
+for l = 0:pl.getNumberOfPositions()-1
+    pos = pl.getPosition(l);
+    if row - 1 == pos.getGridRow() && col - 1 == pos.getGridColumn()
+        return;
+    end
+end
+pos = [];
+l = -1;
+end
 
 function newPos = replaceZ(pos, Z)
 % replaceZ Update the Z of the given position

@@ -22,7 +22,7 @@ function varargout = slide_segmenter(varargin)
 
 % Edit the above text to modify the response to help slide_segmenter
 
-% Last Modified by GUIDE v2.5 18-Jun-2018 17:15:20
+% Last Modified by GUIDE v2.5 20-Jun-2018 14:15:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,32 +52,31 @@ function slide_segmenter_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to slide_segmenter (see VARARGIN)
 
-% Input image
-handles.image = varargin{1};
-handles.gaussImage = varargin{2};
-
-% Apply initial threshold
-thr = graythresh(handles.gaussImage)*0.95;
-handles.Slider.Max = double(max(handles.gaussImage(:)))/double(intmax(class(handles.gaussImage)));
-handles.Slider.Value = thr;
-f = imbinarize(handles.gaussImage, thr);
-handles.mask = imfill(f, 'holes');
-addlistener(handles.Slider,'Value','PreSet',@(~,~)Slider_Moving(hObject));
-
-% Display image and mask
-imshow(handles.image, [min(handles.image(:)), max(handles.image(:))], ...
-    'Parent', handles.Axes);
-hold(handles.Axes, 'on');
-green = cat(3, zeros(size(handles.gaussImage)), ...
-    ones(size(handles.gaussImage)), zeros(size(handles.gaussImage)));
-handles.overlay = imshow(green, 'Parent', handles.Axes);
+% Filter the input image
+sigma = varargin{2};
+handles.image = imgaussfilt(varargin{1}, sigma);
 handles.sections = {};
 guidata(hObject, handles);
-updateOverlay(handles);
+
+% Display initial image
+addlistener(handles.Slider,'Value','PreSet',@(~,~)Slider_Moving(hObject));
+for c = 1:size(handles.image, 3)
+    handles.Channel.String{c} = sprintf('Channel %d', c);
+end
+Channel_Callback(handles.Channel, eventdata, handles);
+
 
 % Update brush display
 handles.Brush.Value = size(handles.image,2)/50;
+handles.Brush.Max = 72/2;
 Brush_Callback(handles.Brush, eventdata, handles);
+
+% Set the gui name
+if length(varargin) > 3
+    set(hObject, 'Name', strcat('Slide Segmenter - ', varargin{4}));
+else
+    set(hObject, 'Name', 'Slide Segmenter');
+end
 
 % UIWAIT makes slide_segmenter wait for user response (see UIRESUME)
 if varargin{3}
@@ -125,17 +124,17 @@ delete(hObject);
 function updateOverlay(handles)
 
 % Display
-handles.overlay.AlphaData = 0.5*handles.mask;
+handles.overlay.AlphaData = 0.2*handles.mask;
 stats = regionprops(handles.mask, 'Centroid');
 
 % Delete old sections
 for i = 1:length(handles.sections)
     delete(handles.sections{i}.label);
 end
-handles.sections = cell(1,length(stats));
-for i = 1:length(stats)
+handles.sections = cell(1,min(length(stats), 50));
+for i = 1:length(handles.sections)
     handles.sections{i}.label = text(handles.Axes,stats(i).Centroid(1),...
-        stats(i).Centroid(2),num2str(i), 'FontSize', 16);
+        stats(i).Centroid(2),num2str(i), 'FontSize', 16, 'Color', [0.6,0,0.8]);
     handles.sections{i}.label.ButtonDownFcn = ...
         @(~,~)set(handles.sections{i}.label,'Editing', 'on');
 end
@@ -145,9 +144,9 @@ guidata(handles.figure1, handles);
 % --- Executes on Slider moving.
 function Slider_Moving(figure)
 handles = guidata(figure);
-thr = handles.Slider.Value;
-f = imbinarize(handles.gaussImage, thr);
-handles.mask = imfill(f, 'holes');
+image = handles.image(:,:,handles.Channel.Value);
+image = imbinarize(image, handles.Slider.Value);
+handles.mask = imfill(image, 'holes');
 updateOverlay(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -224,7 +223,7 @@ if strcmp(type,'draw')
 elseif strcmp(type,'erase')
     handles.mask(target)=0;
 end
-handles.overlay.AlphaData = 0.5*handles.mask;
+handles.overlay.AlphaData = 0.2*handles.mask;
 guidata(gcbf, handles);
 
 function mousePressed(type)
@@ -267,9 +266,44 @@ density = size(handles.image,2)/axesWidth;
 r = handles.Brush.Value/density/1.5;
 c = x(floor(end/2));
 [X,Y] = meshgrid(x, x);
-green = cat(3, zeros(size(X)), ...
-    ones(size(X)), zeros(size(X)));
 brush = false(size(X));
 brush((X - c).^2 + (Y - c).^2 < r^2) = true;
-image(handles.BrushAxes, x, x, green, 'AlphaData', brush);
+image(handles.BrushAxes, x, x, zeros(size(X,1),size(X,2),3), 'AlphaData', brush);
 axis(handles.BrushAxes, 'off');
+
+% --- Executes on selection change in Channel.
+function Channel_Callback(hObject, eventdata, handles)
+% hObject    handle to Channel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns Channel contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from Channel
+channel = hObject.Value;
+image = handles.image(:,:,channel);
+hold(handles.Axes, 'off');
+imshow(image, [min(image(:)), max(image(:))], ...
+    'Parent', handles.Axes);
+hold(handles.Axes, 'on');
+blue = repmat(reshape([0,.3,1],1,1,3),size(image,1),size(image,2),1);
+handles.overlay = imshow(blue, 'Parent', handles.Axes);
+guidata(handles.figure1, handles);
+
+% Apply initial threshold
+thr = graythresh(image);
+handles.Slider.Min = double(min(image(:)))/double(intmax(class(image)));
+handles.Slider.Max = thr*3;
+handles.Slider.Value = thr;
+Slider_Moving(handles.figure1);
+
+% --- Executes during object creation, after setting all properties.
+function Channel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Channel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

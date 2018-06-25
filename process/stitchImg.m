@@ -23,8 +23,8 @@ inBounds = find(inBounds);
 
 globalPosY = ceil(globalPosY/downsample);
 globalPosX = ceil(globalPosX/downsample);
-stitchedHeight = max(globalPosY(:)) + imgHeight + 1;
-stitchedWidth = max(globalPosX(:)) + imgWidth + 1;
+stitchedHeight = max(globalPosY(:)) + imgHeight - 1;
+stitchedWidth = max(globalPosX(:)) + imgWidth - 1;
     
 % Initialize image
 I = zeros(stitchedHeight, stitchedWidth, size(img, 3), 'single');
