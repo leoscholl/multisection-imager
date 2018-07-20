@@ -12,7 +12,7 @@ function b = blobDetect(img, pixelSize, pairs, tolerance)
 %
 
 if ~exist('tolerance', 'var') || isempty(tolerance)
-    tolerance = 0.5;
+    tolerance = 0.55;
 end
 
 % parameters

@@ -22,7 +22,7 @@ for n = 1:length(metadata.sections)
     if ~exist(datapath, 'dir')
         mkdir(datapath);
     end
-    filename = sprintf('%s Sect %d.ASC', ...
+    filename = sprintf('%s Sect %03d.ASC', ...
         subject, metadata.sections(n));
     filepath = fullfile(datapath, filename);
     f = fopen(filepath, 'w');

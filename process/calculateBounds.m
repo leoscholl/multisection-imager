@@ -16,9 +16,7 @@ globalPosY = round(globalPosY - offsetY);
 globalPosX = round(globalPosX - offsetX);
 
 if exist('roi','var') && ~isempty(roi)
-    % Make sure roi is relative to (1,1)
-    roi([2 4]) = round(roi([2 4]) - min(globalPosY(:)) + 1);
-    roi([1 3]) = round(roi([1 3]) - min(globalPosX(:)) + 1);
+    roi = round(roi);
 
     % Determine how big to make the image
     if strict
@@ -30,9 +28,7 @@ if exist('roi','var') && ~isempty(roi)
     end
     inBounds = inBoundsX & inBoundsY;
 elseif exist('poly','var') && ~isempty(poly)
-    % Make sure polygon is relative to (1,1)
-    poly(:,2) = round(poly(:,2) - min(globalPosY(:)) + 1);
-    poly(:,1) = round(poly(:,1) - min(globalPosX(:)) + 1);
+    poly = round(poly);
 
     % Determine bounds of image
     inBounds = false(1,size(globalPosX,2));

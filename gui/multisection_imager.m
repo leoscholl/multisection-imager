@@ -228,25 +228,23 @@ doCellCount = handles.CountCells.Value;
 pairs = handles.Pairs.Data;
 mm = handles.mm;
 windows = mm.displays().getAllImageWindows().toArray();
-for w = 1:length(windows)
-    name = char(windows(w).getName());
-    path = strsplit(fileparts(name), filesep);
-    subject = path{end};
-    if strcmp(name, 'Snap/Live View')
-        continue;
+names = arrayfun(@(x)char(x.getName()),windows,'Un',0);
+windows = windows(~ismember(names, 'Snap/Live View'));
+if length(windows) > 1 % pre-segment each datastore
+    for w = 1:length(windows)
+        name = char(windows(w).getName());
+        path = strsplit(fileparts(name), filesep);
+        subject = path{end};
+        store = windows(w).getDatastore();
+        fprintf('Segment %s...\n', name);
+        setStatus(handles, 'Segmenting...');
+        postProcess(store, dir, subject, 'segmentOnly', true);
     end
-    store = windows(w).getDatastore();
-    fprintf('Segment %s...\n', name);
-    setStatus(handles, 'Segmenting...');
-    postProcess(store, dir, subject, 'segmentOnly', true);
 end
 for w = 1:length(windows)
     name = char(windows(w).getName());
     path = strsplit(fileparts(name), filesep);
     subject = path{end};
-    if strcmp(name, 'Snap/Live View')
-        continue;
-    end
     store = windows(w).getDatastore();
     fprintf('Export %s...\n', name);
     setStatus(handles, 'Exporting...');

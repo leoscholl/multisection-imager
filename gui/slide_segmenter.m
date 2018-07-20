@@ -53,8 +53,8 @@ function slide_segmenter_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to slide_segmenter (see VARARGIN)
 
 % Filter the input image
-sigma = varargin{2};
-handles.image = imgaussfilt(varargin{1}, sigma);
+handles.sigma = round(varargin{2});
+handles.image = imgaussfilt(varargin{1}, handles.sigma);
 handles.sections = {};
 guidata(hObject, handles);
 
@@ -67,7 +67,7 @@ Channel_Callback(handles.Channel, eventdata, handles);
 
 
 % Update brush display
-handles.Brush.Value = size(handles.image,2)/50;
+handles.Brush.Value = handles.sigma*10;
 handles.Brush.Max = 72/2;
 Brush_Callback(handles.Brush, eventdata, handles);
 
@@ -146,6 +146,7 @@ function Slider_Moving(figure)
 handles = guidata(figure);
 image = handles.image(:,:,handles.Channel.Value);
 image = imbinarize(image, handles.Slider.Value);
+image = bwareaopen(image, handles.sigma*10);
 handles.mask = imfill(image, 'holes');
 updateOverlay(handles);
 
@@ -181,9 +182,11 @@ if hObject.Value == 1
     set(handles.figure1,'Pointer','hand');
     set(handles.figure1, 'WindowButtonDownFcn', ...
         @(src, evnt)mousePressed('draw'));
+    set(handles.figure1,'WindowButtonMotionFcn',@(~,~)drawOnMask('hover-draw'));
 else
-    set(handles.figure1, 'WindowButtonDownFcn', '');
     set(handles.figure1,'Pointer','arrow');
+    set(handles.figure1, 'WindowButtonDownFcn', '');
+    set(handles.figure1,'WindowButtonMotionFcn','');
 end
 
 % --- Executes on button press in Erase.
@@ -193,12 +196,15 @@ function Erase_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if hObject.Value == 1
     handles.Draw.Value = 0;
-    set(handles.figure1,'Pointer','circle');
+    set(handles.figure1,'Pointer','hand');
     set(handles.figure1, 'WindowButtonDownFcn', ...
         @(src, evnt)mousePressed('erase'));
+    set(handles.figure1,'WindowButtonMotionFcn',@(~,~)drawOnMask('hover-erase'));
 else
-    set(handles.figure1, 'WindowButtonDownFcn', '');
     set(handles.figure1,'Pointer','arrow');
+    set(handles.figure1, 'WindowButtonDownFcn', '');
+    set(handles.figure1,'WindowButtonMotionFcn','');
+
 end
 
 % --- Executes on button press in CloseButton.
@@ -220,10 +226,21 @@ target((x - pos(1,1)).^2 + (y - pos(1,2)).^2 < r^2) = true;
 
 if strcmp(type,'draw')
     handles.mask(target)=1;
+    handles.overlay.AlphaData = 0.2*handles.mask;
 elseif strcmp(type,'erase')
     handles.mask(target)=0;
+    handles.overlay.AlphaData = 0.2*handles.mask;
+elseif strcmp(type, 'hover-draw')
+    mask = handles.mask;
+    target((x - pos(1,1)).^2 + (y - pos(1,2)).^2 < (r-1)^2) = false;
+    mask(target) = 1;
+    handles.overlay.AlphaData = 0.2*mask;
+elseif strcmp(type, 'hover-erase')
+    mask = handles.mask;
+    target((x - pos(1,1)).^2 + (y - pos(1,2)).^2 < (r-1)^2) = false;
+    mask(target) = 0;
+    handles.overlay.AlphaData = 0.2*mask;
 end
-handles.overlay.AlphaData = 0.2*handles.mask;
 guidata(gcbf, handles);
 
 function mousePressed(type)
@@ -236,15 +253,15 @@ if any(pos > size(handles.mask)) || any(pos < 0)
 end
 drawOnMask(type);
 set(gcbf,'WindowButtonMotionFcn',@(~,~)drawOnMask(type));
-set(gcbf,'WindowButtonUpFcn',@(~,~)mouseUnpressed);
+set(gcbf,'WindowButtonUpFcn',@(~,~)mouseUnpressed(type));
 
 
-function mouseUnpressed
+function mouseUnpressed(type)
 
 % Clean up the evidence ...
 handles = guidata(gcbf);
 set(handles.figure1,'WindowButtonUpFcn','');
-set(handles.figure1,'WindowButtonMotionFcn','');
+set(handles.figure1,'WindowButtonMotionFcn',@(~,~)drawOnMask(['hover-',type]));
 updateOverlay(handles);
 
 
@@ -256,20 +273,7 @@ function Brush_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-width = handles.BrushAxes.Position(3);
-x = linspace(hObject.Min, hObject.Max, width);
-handles.Axes.Units = 'pixel';
-axesWidth = handles.Axes.Position(3);
-handles.Axes.Units = 'normalized';
-density = size(handles.image,2)/axesWidth;
 
-r = handles.Brush.Value/density/1.5;
-c = x(floor(end/2));
-[X,Y] = meshgrid(x, x);
-brush = false(size(X));
-brush((X - c).^2 + (Y - c).^2 < r^2) = true;
-image(handles.BrushAxes, x, x, zeros(size(X,1),size(X,2),3), 'AlphaData', brush);
-axis(handles.BrushAxes, 'off');
 
 % --- Executes on selection change in Channel.
 function Channel_Callback(hObject, eventdata, handles)

@@ -17,6 +17,8 @@ function notifyUsers(users, title, body, color)
         row = find(ismember(C{1}, users{u}));
         method = C{2}{row};
         link = C{3}{row};
+        error = [];
+        
         switch method
             case 'slack'
                 
@@ -29,7 +31,12 @@ function notifyUsers(users, title, body, color)
                 data.attachments(2).text = body;
                 data.attachments(1).fallback = title;
                 options = weboptions('MediaType', 'application/json', 'RequestMethod', 'POST');
-                response = webwrite(link,data,options);
+                
+                try
+                    response = webwrite(link,data,options);
+                catch e
+                    error = e;
+                end
 
             case 'email'
                 props = java.lang.System.getProperties;
@@ -42,7 +49,16 @@ function notifyUsers(users, title, body, color)
                 setpref('Internet','SMTP_Username',email);
                 setpref('Internet','SMTP_Password',password);
                 
-                sendmail(link, title, body);
+                try
+                    sendmail(link, title, body);
+                catch e
+                    error = e;
+                end
+        end
+        
+        if ~isempty(error)
+            warning('Couldn''t notify user %s.', C{1}{row});
+            warning(getReport(error));
         end
     end
 end
