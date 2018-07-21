@@ -35,13 +35,17 @@ elseif exist('poly','var') && ~isempty(poly)
     for n = 1:size(globalPosX,2)
         x = mean(globalPosX(:,n));
         y = mean(globalPosY(:,n));
-        xq = [x, x+metadata.width, x, x+metadata.width];
+        xq = [x, x, x+metadata.width, x+metadata.width];
         yq = [y, y+metadata.height, y+metadata.height, y];
+        
+        % Check whether the image is inside the polygon
         [in, on] = inpolygon(xq, yq, poly(:,1), poly(:,2));
         if strict
             inBounds(n) = all(in | on);
         else
-            inBounds(n) = any(in | on);
+            % Also check whether there is any polygon inside the image
+            [in2, on2] = inpolygon(poly(:,1), poly(:,2), xq, yq);
+            inBounds(n) = any(in | on) || any(in2 | on2);
         end
     end
 end
