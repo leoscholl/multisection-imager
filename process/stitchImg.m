@@ -16,7 +16,6 @@ end
 
 imgHeight = ceil(size(img,1)/downsample);
 imgWidth = ceil(size(img,2)/downsample);
-alpha = 1.5;
 
 [globalPosY, globalPosX, inBounds, offset] = calculateBounds(metadata, roi, poly, strict);
 inBounds = find(inBounds);
@@ -27,9 +26,8 @@ stitchedHeight = max(globalPosY(:)) + imgHeight - 1;
 stitchedWidth = max(globalPosX(:)) + imgWidth - 1;
     
 % Initialize image
-I = zeros(stitchedHeight, stitchedWidth, size(img, 3), 'single');
-w_mat = single(compute_linear_blend_pixel_weights([imgHeight, imgWidth], alpha));
-countsI = zeros(stitchedHeight, stitchedWidth, size(img, 3), 'single');
+I = zeros(stitchedHeight, stitchedWidth, size(img, 3), 'like', img);
+countsI = zeros(stitchedHeight, stitchedWidth, size(img, 3), 'like', img);
 
 % Assemble images
 switch class(img)
@@ -41,7 +39,7 @@ switch class(img)
                 y_st = globalPosY(c,n);
                 y_end = globalPosY(c,n)+imgHeight-1;
                 I(y_st:y_end,x_st:x_end,c) = or(I(y_st:y_end,x_st:x_end,c), ...
-                    single(img(1:downsample:end,1:downsample:end,c,inBounds(n))));
+                    img(1:downsample:end,1:downsample:end,c,inBounds(n)));
             end
         end
     otherwise
@@ -51,11 +49,17 @@ switch class(img)
                 x_end = globalPosX(c,n)+imgWidth-1;
                 y_st = globalPosY(c,n);
                 y_end = globalPosY(c,n)+imgHeight-1;
-                I(y_st:y_end,x_st:x_end,c) = I(y_st:y_end,x_st:x_end,c) + ...
-                    single(img(1:downsample:end,1:downsample:end,c,inBounds(n))).*w_mat;
-                countsI(y_st:y_end,x_st:x_end,c) = countsI(y_st:y_end,x_st:x_end,c) + w_mat;
+                countsI(y_st:y_end,x_st:x_end,c) = countsI(y_st:y_end,x_st:x_end,c) + 1;
             end
         end
-        I = I./countsI;
+        for n = 1:size(globalPosX,2)
+            for c = 1:size(globalPosX,1)
+                x_st = globalPosX(c,n);
+                x_end = globalPosX(c,n)+imgWidth-1;
+                y_st = globalPosY(c,n);
+                y_end = globalPosY(c,n)+imgHeight-1;
+                I(y_st:y_end,x_st:x_end,c) = I(y_st:y_end,x_st:x_end,c) + ...
+                    img(1:downsample:end,1:downsample:end,c,inBounds(n))./countsI(y_st:y_end,x_st:x_end,c);
+            end
+        end
 end
-I = cast(I, class(img));
