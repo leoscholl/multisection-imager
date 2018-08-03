@@ -11,7 +11,7 @@ for n = 1:length(metadata.boundaries)
     toFilter = toFilter | inBounds;
 end
 if sum(toFilter) < 100
-    warning('Too few images to generate good flat-field');
+    warning('using %d images to generate flat-field, result may be poor', sum(toFilter));
 end
 
 % Median Z-projected flat field from gaussian filtered images

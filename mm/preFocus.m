@@ -43,7 +43,7 @@ for rowInd=1:size(focusRow, 1)
         pos = getPositionByGrid(pl, focusRow(row, col), focusCol(row, col));
         mm.core().setXYPosition('XYStage', pos.getX(), pos.getY());
         mm.core().waitForDevice('XYStage');
-        h = msgbox(sprintf('Focus at the current position (%d of %d)', ...
+        h = msgbox(sprintf('Focus at or near the current position (%d of %d)', ...
             colInd+size(focusCol,2)*(rowInd-1), size(focusRow,1)*size(focusRow,2)));
         uiwait(h);
         focusVal(row, col) = mm.core().getPosition();

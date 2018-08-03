@@ -10,16 +10,27 @@ p.addOptional('cellCountChannelPairs', {'mCherry', 'GFP'});
 p.addParameter('segmentOnly', false);
 p.parse(varargin{:});
 
-% Load images
-if p.Results.segmentOnly; datatype = 'uint8';
-else; datatype = 'uint16'; end
-[img, metadata] = imagesFromDatastore(store, datatype);
-
 % Load any existing metadata
-[~, filename, ~] = fileparts(metadata.filepath);
+[~, filename, ~] = fileparts(char(store.getSavePath));
 metafile = fullfile(datadir, subject, filename, sprintf('%s.mat', filename));
 if exist(metafile, 'file')
     load(metafile, 'metadata');
+end
+
+if p.Results.segmentOnly && ...
+        exist('metadata', 'var') && ...
+        isfield(metadata, 'rois')
+    % Already segmented, skip
+    return;
+end
+
+% Load images
+if p.Results.segmentOnly; datatype = 'uint8';
+else; datatype = 'uint16'; end
+if exist('metadata', 'var')
+    img = imagesFromDatastore(store, datatype);
+else
+    [img, metadata] = imagesFromDatastore(store, datatype);
 end
 
 % Optionally just do segmentation and quit
@@ -56,9 +67,9 @@ if isfield(metadata, 'flats') && ~isempty(metadata.flats)
     flats = metadata.flats;
 end
 makeFlats = p.Results.makeFlats;
-if isempty(makeFlats) && ~isfield(metadata, 'flats')
+if ~islogical(makeFlats)
     % by default only if image is large
-    makeFlats = size(img,4) > 500; 
+    makeFlats = ~isfield(metadata, 'flats') && size(img,4) > 500; 
 end
 if makeFlats || isempty(flats)
     flats = generateFlats(img, roughMetadata);
