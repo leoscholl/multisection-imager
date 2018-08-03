@@ -29,6 +29,14 @@ if p.Results.segmentOnly
     return
 end
 
+% Do a quick segmentation if there is none
+if ~isfield(metadata, 'sections') || ~isfield(metadata, 'rois') || ...
+        isempty(metadata.sections) || isempty(metadata.rois)
+    roughMetadata = segmentSlide(img, metadata, [], false);
+else
+    roughMetadata = metadata;
+end
+
 % Flat field
 flats = [];
 background = [];
@@ -48,19 +56,19 @@ if isfield(metadata, 'flats') && ~isempty(metadata.flats)
     flats = metadata.flats;
 end
 makeFlats = p.Results.makeFlats;
-if isempty(makeFlats)
+if isempty(makeFlats) && ~isfield(metadata, 'flats')
     % by default only if image is large
-    makeFlats = ~isfield(metadata, 'flats') && size(img,4) > 500; 
+    makeFlats = size(img,4) > 500; 
 end
 if makeFlats || isempty(flats)
-    flats = generateFlats(img, metadata);
+    flats = generateFlats(img, roughMetadata);
 end
 metadata.flats = flats;
 metadata.background = background;
 img = batchFlatfield(img, flats, background);
 
 % Normalize and downsample
-img = imgNormalize(img);
+img = imgNormalize(img, roughMetadata);
 
 % Segment
 if ~isfield(metadata, 'sections') || ~isfield(metadata, 'rois') || ...

@@ -172,7 +172,7 @@ channels = strtrim(strsplit(handles.Channels.String,{' ',','},...
     'CollapseDelimiters',true));
 exposures = str2double(strsplit(handles.Exposures.String,{' ',','},...
     'CollapseDelimiters',true));
-fprintf('Acquiring...\n');
+fprintf('Acquiring...');
 setStatus(handles, 'Acquiring...');
 result = acquireMultiple(mm, filepath, channels, exposures);
 if isempty(result.error)
@@ -181,10 +181,12 @@ if isempty(result.error)
         floor(result.elapsed/60/60), mod(floor(result.elapsed/60), 60), ...
         round(mod(result.elapsed, 60)));
     color = 'good';
+    fprintf(' Done\n');
 else
     title = 'Multisection acquisition failed...';
-    body = getReport(e,'basic','hyperlinks','off');
+    body = result.error;
     color = 'danger';
+    fprintf(' Error\n');
 end
 notifyUsers(users, title, body, color);
 % Post-processing

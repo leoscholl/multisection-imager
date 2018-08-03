@@ -24,7 +24,7 @@ for c = 1:size(img,3)
     msg = sprintf('generating flat-field image %d/%d', c, size(img,3));
     fprintf(msg)
     
-    filt = imfilter(img(:,:,c,toFilter),h);    
+    filt = imfilter(img(:,:,c,toFilter),h,'replicate');    
     flats(:,:,c) = median(filt,4);
 end
 fprintf('\n');

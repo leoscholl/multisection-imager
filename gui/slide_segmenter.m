@@ -294,7 +294,7 @@ handles.overlay = imshow(blue, 'Parent', handles.Axes);
 guidata(handles.figure1, handles);
 
 % Apply initial threshold
-thr = graythresh(image);
+thr = double(multithresh(image))/double(intmax(class(image)));
 handles.Slider.Min = double(min(image(:)))/double(intmax(class(image)));
 handles.Slider.Max = thr*3;
 handles.Slider.Value = thr;

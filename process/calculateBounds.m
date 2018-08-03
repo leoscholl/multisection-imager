@@ -53,8 +53,10 @@ globalPosY = globalPosY(:,inBounds);
 globalPosX = globalPosX(:,inBounds);
 offsetY = min(globalPosY(:)) - 1;
 offsetX = min(globalPosX(:)) - 1;
-globalPosY = round(globalPosY - offsetY);
-globalPosX = round(globalPosX - offsetX);
+if ~isempty(globalPosY) && ~isempty(globalPosX)
+    globalPosY = round(globalPosY - offsetY);
+    globalPosX = round(globalPosX - offsetX);
+end
 offset = round([offsetX, offsetY]);
 
 end

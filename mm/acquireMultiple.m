@@ -29,7 +29,14 @@ metadata.intendedDimensions(...
 store.setSummaryMetadata(metadata.build());
 mm.core().setTimeoutMs(30000);
 
-% turn off live display
+% Set up waitbar
+expected = nPos*length(channels)*1.4 + sum(nPos*exposures)/1000;
+wb = waitbar(0, sprintf('Time remaining: %d:%02d', floor(expected/60), ...
+    floor(mod(expected,60))), 'Name', 'Acquiring...', 'Visible', 'off', ...
+    'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)'); 
+setappdata(wb,'canceling',0);
+
+% Turn off live display
 mm.live().setLiveMode(false);
 try
     for c = 1:length(channels)
@@ -58,10 +65,29 @@ try
                 .xPositionUm(java.lang.Double(pos.getX()))...
                 .yPositionUm(java.lang.Double(pos.getY())).build();
             store.putImage(image.copyWith(coords, metadata));
+            
+            % Update waitbar
+            n = nPos*(c-1) + l;
+            expected = (nPos*length(channels)-n)*1.4 + ...
+                sum(nPos*exposures(c+1:end))/1000 + (nPos-l)*exposures(c)/1000;
+            waitbar(n/nPos/length(channels), wb, ...
+                sprintf('Time remaining: %d:%02d', ...
+                floor(expected/60), floor(mod(expected,60)))); 
+            set(wb, 'Visible', 'on');
+            
+            % Check for clicked Cancel button
+            if getappdata(wb,'canceling')
+                store.freeze();
+                delete(wb);
+                result.elapsed = toc;
+                result.store = store;
+                result.error = 'Canceled';
+                return;
+            end
         end
     end
 catch e
-    result.error = e;
+    result.error = getReport(e,'basic','hyperlinks','off');
 end
 
 % Freeze datastore and move stage away from samples
@@ -75,6 +101,7 @@ else
 end
 mm.core().setXYPosition('XYStage', pos.getX() + offset, pos.getY() + offset);
 
+delete(wb);
 result.elapsed = toc;
 result.store = store;
 if isempty(result.error)
