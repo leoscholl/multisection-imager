@@ -54,10 +54,9 @@ function multisection_imager_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for multisection_imager
 handles.output = hObject;
+wait = false;
 if length(varargin) == 1 && strcmp(varargin{1}, 'nomm')
     % no micromanger mode
-elseif length(varargin) == 1
-    handles.mm = varargin{1};
 elseif evalin( 'base', 'exist(''mm'',''var'') == 1' )
     handles.mm = evalin('base','mm');
 else
@@ -80,8 +79,9 @@ handles.User.String = users;
 loadPrefs(handles);
 
 % UIWAIT makes multisection_imager wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
+if length(varargin) == 1 && strcmp(varargin{1}, 'wait')
+    uiwait(handles.figure1);
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = multisection_imager_OutputFcn(hObject, eventdata, handles) 
@@ -105,7 +105,11 @@ if ~evalin( 'base', 'exist(''mm'',''var'') == 1') && isfield(handles, 'mm')
     assignin( 'base', 'mm', handles.mm);
     pause(0.1);
 end
-delete(hObject);
+if isequal(get(hObject, 'waitstatus'), 'waiting')
+    uiresume(hObject)
+else
+    delete(hObject);
+end
 
 % --- Executes on button press in PreFocus.
 function PreFocus_Callback(hObject, eventdata, handles)
