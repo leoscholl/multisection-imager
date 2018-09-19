@@ -16,11 +16,11 @@ for n = 1:size(metadata.boundaries,1)
     fprintf(msg)
     
     I = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);
-    datapath = fullfile(datadir, subject, sprintf('Sect %03d', metadata.sections(n)));
-    if ~exist(datapath, 'dir')
-        mkdir(datapath);
-    end
     for c = 1:size(I,3)
+        datapath = fullfile(datadir, subject, channels{c});
+        if ~exist(datapath, 'dir')
+            mkdir(datapath);
+        end
         filename = sprintf('%s Sect %03d %s.tiff', ...
             subject, metadata.sections(n), channels{c});
         filepath = fullfile(datapath, filename);
