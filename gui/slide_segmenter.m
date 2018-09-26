@@ -65,11 +65,10 @@ for c = 1:size(handles.image, 3)
 end
 Channel_Callback(handles.Channel, eventdata, handles);
 
-
 % Update brush display
 handles.Brush.Value = handles.sigma*10;
-handles.Brush.Max = 72/2;
-Brush_Callback(handles.Brush, eventdata, handles);
+handles.Brush.Min = handles.sigma;
+handles.Brush.Max = min(length(handles.image),handles.sigma*500);
 
 % Set the gui name
 if length(varargin) > 3

@@ -29,6 +29,10 @@ focusVal = zeros(size(focusCol));
 % Turn on live display
 mm.live().setLiveMode(true);
 mm.core().setTimeoutMs(30000);
+oldSpeed = mm.core().getProperty('XYStage', 'Speed');
+oldAccel = mm.core().getProperty('XYStage', 'Acceleration');
+mm.core().setProperty('XYStage', 'Speed', 5000);
+mm.core().setProperty('XYStage', 'Acceleration', 5);
 
 % Do the prefocus routine
 for rowInd=1:size(focusRow, 1)
@@ -59,6 +63,8 @@ for w = 1:length(windows)
         windows(w).requestToClose();
     end
 end
+mm.core().setProperty('XYStage', 'Speed', oldSpeed);
+mm.core().setProperty('XYStage', 'Acceleration', oldAccel);
 
 [Col, Row] = meshgrid(1:cols,1:rows);
 F = scatteredInterpolant(focusCol(:), focusRow(:), focusVal(:));

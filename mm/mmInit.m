@@ -7,6 +7,8 @@ try
     mm.core().waitForSystem();
     % Set presets
     mm.core().setProperty('XYStage', 'StepSize', 0.05);
+    mm.core().setProperty('XYStage', 'Speed', 2000);
+    mm.core().setProperty('XYStage', 'Acceleration', 10);
     mm.core().setProperty('ZeissHalogenLamp', 'State', true);
     mm.core().setProperty('DObjective', 'Label', '10x');
     mm.core().setChannelGroup('Reflector');

@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 15-Jun-2018 15:05:03
+% Last Modified by GUIDE v2.5 25-Sep-2018 15:37:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -513,3 +513,11 @@ function DefaultFlats_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in Help.
+function Help_Callback(hObject, eventdata, handles)
+% hObject    handle to Help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+web('https://github.com/leoscholl/multisection-imager#readme','-browser')

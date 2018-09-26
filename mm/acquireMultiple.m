@@ -87,7 +87,7 @@ try
         end
     end
 catch e
-    result.error = getReport(e,'basic','hyperlinks','off');
+    result.error = getReport(e,'extended','hyperlinks','off');
 end
 
 % Freeze datastore and move stage away from samples
