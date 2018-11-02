@@ -98,8 +98,8 @@ if ~isfield(metadata, 'sections') || ~isfield(metadata, 'rois') || ...
 end
 
 % Find blobs
-if p.Results.doAsc && p.Results.doCellCount
-    waitbar(0.6, wb, 'Segmenting...'); 
+if p.Results.doCellCount
+    waitbar(0.6, wb, 'Counting cells...'); 
     metadata = countCells(img, metadata, p.Results.cellCountChannelPairs);
 end
 

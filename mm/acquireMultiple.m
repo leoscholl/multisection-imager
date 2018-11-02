@@ -30,7 +30,7 @@ store.setSummaryMetadata(metadata.build());
 mm.core().setTimeoutMs(30000);
 
 % Set up waitbar
-expected = nPos*length(channels)*1.4 + sum(nPos*exposures)/1000;
+expected = nPos*length(channels)*1.3 + sum(nPos*exposures)/1000;
 wb = waitbar(0, sprintf('Time remaining: %d:%02d', floor(expected/60), ...
     floor(mod(expected,60))), 'Name', 'Acquiring...', 'Visible', 'off', ...
     'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)'); 

@@ -30,7 +30,11 @@ for n = 1:size(metadata.boundaries,1)
         metadata.cells{n,c}.channel = pairs(c,1);
         centroid = cell2mat(struct2cell(stats)').*downsample;
         if ~isempty(centroid)
+            % Remove any cells outside the brain outline
             centroid = centroid + offset;
+            [in, on] = inpolygon(centroid(:,1), centroid(:,2), ...
+                metadata.boundaries{n}(:,1), metadata.boundaries{n}(:,2));
+            centroid(~in & ~on,:) = [];
         end
         metadata.cells{n,c}.centroid = centroid;
     end

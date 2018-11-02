@@ -20,7 +20,7 @@ if ~isfield(metadata, 'rois') || isempty(metadata.rois)
 end
 foreground = zeros(1,size(img,4));
 for n = 1:length(metadata.rois)
-    [~, ~, inBounds] = calculateBounds(metadata, metadata.rois);
+    [~, ~, inBounds] = calculateBounds(metadata, metadata.rois(n,:));
     foreground = foreground | inBounds;
 end
 

@@ -38,32 +38,32 @@ for n = 1:length(metadata.sections)
     end
     
     % Image metadata
-    fprintf(f, ';\tV3 text file written by multisection-imager in MATLAB.\n');
-    fprintf(f, '(ImageCoords \n');
+    fprintf(f, ';\tV3 text file written by multisection-imager in MATLAB.\r\n');
+    fprintf(f, '(ImageCoords \r\n');
     for c = 1:length(metadata.channels)
         filepath = metadata.imagepath{n,c};
-        fprintf(f, ' Filename "%s" Merge 65535 65535 65535 0\n', filepath);
-        fprintf(f, ' Coords %g %g %g %g %g\n', ...
+        fprintf(f, ' Filename "%s" Merge 65535 65535 65535 0\r\n', filepath);
+        fprintf(f, ' Coords %g %g %g %g %g\r\n', ...
             metadata.pixelSize, metadata.pixelSize,...
             -ref(1)*metadata.pixelSize, ref(2)*metadata.pixelSize, 0);
     end
-    fprintf(f, '); End of ImageCoords\n\n');
+    fprintf(f, '); End of ImageCoords\r\n\r\n');
     
     % Boundary metadata
     if isfield(metadata, 'boundaries') && ~isempty(metadata.boundaries{n})
-        fprintf(f, '("Surface"\n  (Color Cyan)\n  (Closed)\n');
+        fprintf(f, '("Surface"\r\n  (Color Cyan)\r\n  (Closed)\r\n');
         symbols = ['0':'9','A':'F'];
         nums = randi(length(symbols),[1 32]);
-        fprintf(f, '  (GUID "%s")\n', strcat(symbols(nums)));
-        fprintf(f, '  (MBFObjectType 5)\n  (Resolution %f)\n',...
+        fprintf(f, '  (GUID "%s")\r\n', strcat(symbols(nums)));
+        fprintf(f, '  (MBFObjectType 5)\r\n  (Resolution %f)\r\n',...
             metadata.pixelSize);
         for p = 1:size(metadata.boundaries{n},1)
-            fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ;  1, %d\n', ...
+            fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ;  1, %d\r\n', ...
                 (metadata.boundaries{n}(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
                 -(metadata.boundaries{n}(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
                 0, metadata.pixelSize, p);
         end
-        fprintf(f, ')  ;  End of contour\n\n');
+        fprintf(f, ')  ;  End of contour\r\n\r\n');
     end
     
     % Marker metadata
@@ -74,23 +74,23 @@ for n = 1:length(metadata.sections)
             end
             switch metadata.channels{metadata.cells{n,c}.channel}
                 case 'GFP'
-                    fprintf(f, '(FilledCircle\n  (Color Green)\n  (Name "GFP")\n');
+                    fprintf(f, '(FilledCircle\r\n  (Color Green)\r\n  (Name "GFP")\r\n');
                 case 'mCherry'
-                    fprintf(f, '(FilledDownTriangle\n  (Color Red)\n  (Name "mCherry")\n');
+                    fprintf(f, '(FilledDownTriangle\r\n  (Color Red)\r\n  (Name "mCherry")\r\n');
                 case 'BFP'
-                    fprintf(f, '(FilledSquare\n  (Color Blue)\n  (Name "BFP")\n');
+                    fprintf(f, '(FilledSquare\r\n  (Color Blue)\r\n  (Name "BFP")\r\n');
             end
             for p = 1:size(metadata.cells{n,c}.centroid,1)
-                fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\n', ...
+                fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\r\n', ...
                     (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
                     -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
                     0, 0, p);
             end
-            fprintf(f, ')  ;  End of markers\n\n');
+            fprintf(f, ')  ;  End of markers\r\n\r\n');
         end
     end
     
     fclose(f);
     
 end
-fprintf('\n')
+fprintf('\r\n')
