@@ -41,7 +41,10 @@ f = single(f);
 localContrast=sqrt(imgaussfilt(f.^2,sigmaLc));
 localNormalized=f./localContrast; % anything below 1 is dark
 localNormalized=single(mat2gray(localNormalized, [1 3]));
-localContrast = [];
+
+% edge detect
+h = fspecial('log', 3, 0.5);
+log = imfilter(f, h, 'replicate');
 
 b = zeros(size(img, 1), size(img, 2), size(pairs, 1), 'logical');
 for p = 1:size(pairs, 1)
@@ -62,8 +65,12 @@ for p = 1:size(pairs, 1)
         imbinarize(localNormalized(:,:,channel)));
     autofluoro = imdilate(autofluoro, se);
     
+    % exclude sharp edges and their surrounds
+    edges = imbinarize(log(:,:,channel));
+    edges = imdilate(edges, se);
+    
     % combine and filter based on area
-    b2 = and(and(candidates, not(autofluoro)), not(dust));
+    b2 = and(and(candidates, not(autofluoro)), not(or(dust, edges)));
     se = strel('disk', round(5/pixelSize));
     b2 = imclose(b2, se);
     b2 = bwareafilt(b2, [minArea maxArea]);
