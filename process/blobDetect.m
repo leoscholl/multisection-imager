@@ -1,4 +1,4 @@
-function b = blobDetect(img, pixelSize, pairs, threshold)
+function b = blobDetect(img, pixelSize, pairs, sigma)
 % blobDetect
 % 
 % INPUTS: 
@@ -11,15 +11,19 @@ function b = blobDetect(img, pixelSize, pairs, threshold)
 %   b - binary image with blobs = 1
 %
 
-if ~exist('threshold', 'var') || isempty(threshold)
-    threshold = 0.75;
+if ~exist('sigma', 'var') || isempty(sigma)
+    sigma = 4;
+end
+
+if sigma < 0
+    error('Sigma must be above 0');
 end
 
 % parameters
-sigmaFg = 5/pixelSize; % bandpass with 5-40 um sigma DoG
-sigmaBg = 40/pixelSize; 
-sigmaLc = 40/pixelSize; % to determine local contrast
-minArea = round(pi*3^2/pixelSize^2); % 3-20 um radius
+sigmaFg = 5/pixelSize; % bandpass with 5-30 um sigma DoG
+sigmaBg = 30/pixelSize; 
+sigmaLc = 100/pixelSize; % to determine local contrast
+minArea = round(pi*4^2/pixelSize^2); % 4-20 um radius
 maxArea = round(pi*20^2/pixelSize^2);
 
 % difference of gaussian filter
@@ -33,18 +37,12 @@ f = f - imgaussfilt(f,sigmaBg);
 for c = 1:size(f,3)
     s = std2(f(:,:,c));
     m = mean2(f(:,:,c));
-    f(:,:,c) = mat2gray(f(:,:,c), [m-5*s, m+5*s]); % scale into range 0-1
+    f(:,:,c) = mat2gray(f(:,:,c), [m-6*s, m+6*s]); % scale into range 0-1
 end
-f = single(f);
 
 % normalize local contrast
 localContrast=sqrt(imgaussfilt(f.^2,sigmaLc));
-localNormalized=f./localContrast; % anything below 1 is dark
-localNormalized=single(mat2gray(localNormalized, [1 3]));
-
-% edge detect
-h = fspecial('log', 3, 0.5);
-log = imfilter(f, h, 'replicate');
+localNormalized=f./localContrast;
 
 b = zeros(size(img, 1), size(img, 2), size(pairs, 1), 'logical');
 for p = 1:size(pairs, 1)
@@ -52,48 +50,20 @@ for p = 1:size(pairs, 1)
     channel = pairs(p,1);
     reference = pairs(p,2);
     
-    % find the candidate cells by simple thresholding of the filtered image
-    candidates = imbinarize(f(:,:,channel), 0.99);
+    % find the candidate cells
+    sub = localNormalized(:,:,channel) - localNormalized(:,:,reference);
+    candidates = imbinarize(sub, sigma/6); % 1 is 6 std above mean
 
-    % find dirt/dust with thresholded reference image
-    dust = imbinarize(f(:,:,reference), 0.99);
-    se = strel('disk', round(40/pixelSize)); % enlarge to 40um radius
-    dust = imdilate(dust, se);
-    
-    % use the local contrast to find autofluorescence
-    autofluoro = and(imbinarize(localNormalized(:,:,reference)), ...
-        imbinarize(localNormalized(:,:,channel)));
-    autofluoro = imdilate(autofluoro, se);
-    
-    % exclude sharp edges and their surrounds
-    edges = imbinarize(log(:,:,channel));
-    edges = imdilate(edges, se);
+    % exclude sharp edges
+    edges = edge(f(:,:,reference), 'canny', [0.05, 0.2]);
+    edges = bwareaopen(edges, minArea);
+    edges = imdilate(edges,strel('disk',round(12/pixelSize)));
+    edges = imfill(edges, 'holes');
     
     % combine and filter based on area
-    b2 = and(and(candidates, not(autofluoro)), not(or(dust, edges)));
-    se = strel('disk', round(5/pixelSize));
-    b2 = imclose(b2, se);
+    b2 = and(candidates, not(edges));
     b2 = bwareafilt(b2, [minArea maxArea]);
     
-% 
-%     % find the candidate cells by simple thresholding of the filtered image
-%     candidates = imbinarize(f(:,:,channel), 0.99);
-%     candidates = bwareafilt(candidates, [minArea maxArea]);
-%     
-%     % find dirt/dust with thresholded reference image
-%     dust = imbinarize(f(:,:,reference), 0.99);
-%     se = strel('disk', round(40/pixelSize)); % enlarge to 40um radius
-%     dust = imdilate(dust, se);
-%     b2 = and(candidates, not(dust));
-% 
-%     % use the difference of local contrasts to remove autofluorescence
-%     diff = localNormalized(:,:,channel) - localNormalized(:,:,reference);
-%     diff = imbinarize(diff, 1-tolerance);
-%     b2 = and(diff, b2);
-%     se = strel('disk', round(5/pixelSize));
-%     b2 = imclose(b2, se);
-%     b2 = bwareafilt(b2, [minArea maxArea]); % remove small spots
-
     b(:,:,p) = b2;
     
 end

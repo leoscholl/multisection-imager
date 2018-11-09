@@ -17,10 +17,10 @@ for p = 1:size(channelPairs,1)
 end
 
 msg = '';
-for n = 1:size(metadata.boundaries,1)
+for n = 1:length(metadata.boundaries)
     
     fprintf(repmat('\b',1,length(msg)));
-    msg = sprintf('finding cells in slice %d/%d', n, size(metadata.boundaries,1));
+    msg = sprintf('finding cells in slice %d/%d', n, length(metadata.boundaries));
     fprintf(msg)
     
     [I,offset] = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);

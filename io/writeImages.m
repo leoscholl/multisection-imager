@@ -8,11 +8,11 @@ if ~exist('downsample', 'var')
 end
 
 msg = '';
-for n = 1:size(metadata.boundaries,1)
+for n = 1:length(metadata.boundaries)
     
     fprintf(repmat('\b',1,length(msg)));
     msg = sprintf('stitching & writing %d images for section %d/%d', ...
-         size(img,3), n, size(metadata.boundaries,1));
+         size(img,3), n, length(metadata.boundaries));
     fprintf(msg)
     
     I = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);

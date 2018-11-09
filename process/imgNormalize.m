@@ -19,7 +19,7 @@ if ~isfield(metadata, 'rois') || isempty(metadata.rois)
     metadata = segmentSlide(img, metadata, [], false);
 end
 foreground = zeros(1,size(img,4));
-for n = 1:length(metadata.rois)
+for n = 1:size(metadata.rois,1)
     [~, ~, inBounds] = calculateBounds(metadata, metadata.rois(n,:));
     foreground = foreground | inBounds;
 end

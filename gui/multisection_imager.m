@@ -154,13 +154,6 @@ else
     handles.PositionListError.Visible = 'off';
 end
 
-title = 'Starting acquisition';
-body = 'You will be notified when it is finished';
-color = '#439FE0';
-users = strtrim(strsplit(handles.User.String{handles.User.Value},...
-    {' ',','}, 'CollapseDelimiters',true));
-notifyUsers(users, title, body, color);
-
 % Acquisition
 dir = handles.DataDir.String;
 subject = handles.Subject.String;
@@ -171,6 +164,16 @@ if isempty(dir) || isempty(subject) || isempty(slide)
 else
     handles.Error.Visible = 'off';
 end
+
+% Send emails
+title = 'Starting acquisition';
+body = 'You will be notified when it is finished';
+color = '#439FE0';
+users = strtrim(strsplit(handles.User.String{handles.User.Value},...
+    {' ',','}, 'CollapseDelimiters',true));
+notifyUsers(users, title, body, color);
+
+% Start acquiring
 filepath = fullfile(dir, subject, slide);
 channels = strtrim(strsplit(handles.Channels.String,{' ',','},...
     'CollapseDelimiters',true));
@@ -179,6 +182,8 @@ exposures = str2double(strsplit(handles.Exposures.String,{' ',','},...
 fprintf('Acquiring...');
 setStatus(handles, 'Acquiring...');
 result = acquireMultiple(mm, filepath, channels, exposures);
+
+% Send result emails
 if isempty(result.error)
     title = 'Multisection acquisition complete!';
     body = sprintf('Finished in %d hours, %d minutes, and %d seconds', ...
@@ -193,6 +198,7 @@ else
     fprintf(' Error\n');
 end
 notifyUsers(users, title, body, color);
+
 % Post-processing
 defaultFlats = handles.DefaultFlats.String;
 doConvert = handles.AutoConvert.Value;
@@ -271,19 +277,23 @@ function ChangeFlats_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 dir = handles.DataDir.String;
-[metafile, path] = uigetfile('*.mat', 'Open new flatfield metadata', dir);
+[metafile, path] = uigetfile('*.mat', 'Open new flatfield file or slide acquisition metadata', dir);
 if isempty(metafile) || (length(metafile) == 1 && metafile == 0)
     return
 end
-load(fullfile(path, metafile), 'metadata');
-if ~exist('metadata', 'var') || ~isfield(metadata, 'flats')
+f = load(fullfile(path, metafile));
+if isfield(f, 'flatfields') && isfield(f, 'background')
+    handles.DefaultFlats.String = fullfile(path, metafile);
+    return;
+end
+if ~isfield(f, 'metadata') || ~isfield(f.metadata, 'flats')
     error('No flat fields found in that file');
 end
 [file, path] = uiputfile('*.mat', ...
     'Choose a location for the default flat field images', ...
     'F:\Leo\Background\flatfields.mat');
 filepath = fullfile(path, file);
-updateFlats(metadata.flats, metadata.channels, metadata.background, ...
+updateFlats(f.metadata.flats, f.metadata.channels, f.metadata.background, ...
     filepath);
 handles.DefaultFlats.String = filepath;
 
