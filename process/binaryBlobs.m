@@ -1,11 +1,11 @@
-function b = blobDetect(img, pixelSize, pairs, sigma)
+function b = binaryBlobs(img, pixelSize, pairs, sigma)
 % blobDetect
 % 
 % INPUTS: 
 %   img - image matrix
 %   pixelSize - metadata
 %   pairs - which channels to detect and which to reference
-%   threshold - for finding cells
+%   sigma - threshold above the mean
 %
 % OUTPUTS:
 %   b - binary image with blobs = 1
@@ -27,10 +27,7 @@ minArea = round(pi*4^2/pixelSize^2); % 4-20 um radius
 maxArea = round(pi*20^2/pixelSize^2);
 
 % difference of gaussian filter
-% h = fspecial('gaussian', round(sigmaBg*3)*2+1, sigmaFg) - ...
-%     fspecial('gaussian', round(sigmaBg*3)*2+1, sigmaBg);
-% f = imfilter(double(img), h);
-f = imgaussfilt(double(img), sigmaFg); % seems faster
+f = imgaussfilt(double(img), sigmaFg);
 f = f - imgaussfilt(f,sigmaBg);
 
 % normalize
@@ -53,9 +50,10 @@ for p = 1:size(pairs, 1)
     % find the candidate cells
     sub = localNormalized(:,:,channel) - localNormalized(:,:,reference);
     candidates = imbinarize(sub, sigma/6); % 1 is 6 std above mean
-
+    candidates = imclose(candidates, strel('disk', round(4/pixelSize)));
+    
     % exclude sharp edges
-    edges = edge(f(:,:,reference), 'canny', [0.05, 0.2]);
+    edges = edge(f(:,:,reference), 'canny', [0.01, 0.1]);
     edges = bwareaopen(edges, minArea);
     edges = imdilate(edges,strel('disk',round(12/pixelSize)));
     edges = imfill(edges, 'holes');
@@ -63,6 +61,7 @@ for p = 1:size(pairs, 1)
     % combine and filter based on area
     b2 = and(candidates, not(edges));
     b2 = bwareafilt(b2, [minArea maxArea]);
+    b2 = imfill(b2, 'holes');
     
     b(:,:,p) = b2;
     

@@ -30,7 +30,7 @@ for n = 1:length(metadata.sections)
     % Reference point
     ref = [0 0];
     offset = [0 0];
-    if isfield(metadata, 'boundaries')
+    if isfield(metadata, 'positions') && isfield(metadata, 'boundaries')
         [~, ~, ~, offset] = calculateBounds(metadata, [], metadata.boundaries{n}, false);
     end
     if isfield(metadata, 'refs')
@@ -82,8 +82,8 @@ for n = 1:length(metadata.sections)
             end
             for p = 1:size(metadata.cells{n,c}.centroid,1)
                 fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\r\n', ...
-                    (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
-                    -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
+                    (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize - 5, ...
+                    -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize - 5, ...
                     0, 0, p);
             end
             fprintf(f, ')  ;  End of markers\r\n\r\n');

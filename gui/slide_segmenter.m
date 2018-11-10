@@ -37,7 +37,7 @@ if nargin && ischar(varargin{1})
 end
 
 if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, 'visible', 'off', varargin{:});
 else
     gui_mainfcn(gui_State, varargin{:});
 end
@@ -53,9 +53,11 @@ function slide_segmenter_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to slide_segmenter (see VARARGIN)
 
 % Filter the input image
-handles.sigma = round(varargin{2});
-handles.image = imgaussfilt(varargin{1}, handles.sigma);
+handles.sigma = round(varargin{4});
+handles.image = imgaussfilt(varargin{3}, handles.sigma);
 handles.sections = {};
+handles.confirmation = varargin{5};
+set(hObject, 'visible', 'off');
 guidata(hObject, handles);
 
 % Display initial image
@@ -71,14 +73,14 @@ handles.Brush.Min = handles.sigma;
 handles.Brush.Max = min(length(handles.image),handles.sigma*500);
 
 % Set the gui name
-if length(varargin) > 3
-    set(hObject, 'Name', strcat('Slide Segmenter - ', varargin{4}));
+if length(varargin) > 5
+    set(hObject, 'Name', strcat('Slide Segmenter - ', varargin{6}));
 else
     set(hObject, 'Name', 'Slide Segmenter');
 end
 
 % UIWAIT makes slide_segmenter wait for user response (see UIRESUME)
-if varargin{3}
+if varargin{5}
     uiwait(hObject);
 end
 
@@ -126,16 +128,23 @@ function updateOverlay(handles)
 handles.overlay.AlphaData = 0.2*handles.mask;
 stats = regionprops(handles.mask, 'Centroid');
 
-% Delete old sections
-for i = 1:length(handles.sections)
-    delete(handles.sections{i}.label);
-end
-handles.sections = cell(1,min(length(stats), 50));
-for i = 1:length(handles.sections)
-    handles.sections{i}.label = text(handles.Axes,stats(i).Centroid(1),...
-        stats(i).Centroid(2),num2str(i), 'FontSize', 16, 'Color', [0.6,0,0.8]);
-    handles.sections{i}.label.ButtonDownFcn = ...
-        @(~,~)set(handles.sections{i}.label,'Editing', 'on');
+if handles.confirmation
+    % Delete old sections
+    for i = 1:length(handles.sections)
+        delete(handles.sections{i}.label);
+    end
+    handles.sections = cell(1,min(length(stats), 50));
+    for i = 1:length(handles.sections)
+            handles.sections{i}.label = text(handles.Axes,stats(i).Centroid(1),...
+                stats(i).Centroid(2),num2str(i), 'FontSize', 16, 'Color', [0.6,0,0.8]);
+            handles.sections{i}.label.ButtonDownFcn = ...
+                @(~,~)set(handles.sections{i}.label,'Editing', 'on');
+    end
+else
+    handles.sections = cell(1,min(length(stats), 30));
+    for i = 1:length(handles.sections)
+        handles.sections{i}.label.String = num2str(i);
+    end
 end
 
 guidata(handles.figure1, handles);
@@ -145,7 +154,7 @@ function Slider_Moving(figure)
 handles = guidata(figure);
 image = handles.image(:,:,handles.Channel.Value);
 image = imbinarize(image, handles.Slider.Value);
-image = bwareaopen(image, handles.sigma*10);
+image = bwareaopen(image, (handles.sigma*20)^2);
 handles.mask = imfill(image, 'holes');
 updateOverlay(handles);
 
@@ -285,15 +294,19 @@ function Channel_Callback(hObject, eventdata, handles)
 channel = hObject.Value;
 image = handles.image(:,:,channel);
 hold(handles.Axes, 'off');
-imshow(image, [min(image(:)), max(image(:))], ...
-    'Parent', handles.Axes);
-hold(handles.Axes, 'on');
-blue = repmat(reshape([0,.3,1],1,1,3),size(image,1),size(image,2),1);
-handles.overlay = imshow(blue, 'Parent', handles.Axes);
+if handles.confirmation
+    imshow(image, [min(image(:)), max(image(:))], ...
+        'Parent', handles.Axes);
+    hold(handles.Axes, 'on');
+    blue = repmat(reshape([0,.3,1],1,1,3),size(image,1),size(image,2),1);
+    handles.overlay = imshow(blue, 'Parent', handles.Axes);
+else
+    handles.overlay = struct;
+end
 guidata(handles.figure1, handles);
 
 % Apply initial threshold
-thr = double(multithresh(image))/double(intmax(class(image)));
+thr = double(multithresh(image))/double(intmax(class(image)))*0.85;
 handles.Slider.Min = double(min(image(:)))/double(intmax(class(image)));
 handles.Slider.Max = thr*3;
 handles.Slider.Value = thr;
