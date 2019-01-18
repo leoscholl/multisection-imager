@@ -5,9 +5,7 @@ function exportMetadataToAsc(metadata, subject, datadir)
 if ~isfield(metadata, 'sections')
     error('No section metadata. Exporting requires at least one section');
 end
-if ~isfield(metadata, 'imagepath') || isempty(metadata.imagepath) || ...
-    size(metadata.imagepath,1) < size(metadata.rois,1) || ...
-    size(metadata.imagepath,2) < length(metadata.channels)
+if ~isfield(metadata, 'imagepath') || isempty(metadata.imagepath)
     error('No filepath metadata. Save files before exporting.');
 end
 
@@ -40,7 +38,12 @@ for n = 1:length(metadata.sections)
     % Image metadata
     fprintf(f, ';\tV3 text file written by multisection-imager in MATLAB.\r\n');
     fprintf(f, '(ImageCoords \r\n');
-    for c = 1:length(metadata.channels)
+    if isfield(metadata, 'isrgb') && metadata.isrgb
+        nChannels = 1;
+    else
+        nChannels = length(metadata.channels);
+    end
+    for c = 1:nChannels
         filepath = metadata.imagepath{n,c};
         fprintf(f, ' Filename "%s" Merge 65535 65535 65535 0\r\n', filepath);
         fprintf(f, ' Coords %g %g %g %g %g\r\n', ...
@@ -72,7 +75,7 @@ for n = 1:length(metadata.sections)
             if isempty(metadata.cells{n,c}.centroid)
                 continue;
             end
-            switch metadata.channels{metadata.cells{n,c}.channel}
+            switch metadata.imageorder{metadata.cells{n,c}.channel}
                 case 'GFP'
                     fprintf(f, '(FilledCircle\r\n  (Color Green)\r\n  (Name "GFP")\r\n');
                 case 'mCherry'
@@ -84,7 +87,7 @@ for n = 1:length(metadata.sections)
                 fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\r\n', ...
                     (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize - 5, ...
                     -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize - 5, ...
-                    0, 0, p);
+                    0, metadata.cells{n,c}.diameter(p), p);
             end
             fprintf(f, ')  ;  End of markers\r\n\r\n');
         end

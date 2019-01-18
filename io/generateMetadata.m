@@ -1,14 +1,18 @@
-function generateMetadata(datadir, subject, filter, pixelSize)
+function generateMetadata(datadir, subject, filter, pixelSize, inspect, channel)
 metadata = struct;
 
-if exist('pixelSize', 'var')
+if exist('pixelSize', 'var') && ~isempty(pixelSize)
     metadata.pixelSize = pixelSize;
 else
     metadata.pixelSize = 1.301911;
 end
 
-if ~exist('filter', 'var')
+if ~exist('filter', 'var') || isempty(filter)
     filter = '*.jp2';
+end
+
+if ~exist('inspect', 'var') || isempty(inspect)
+    inspect = false;
 end
 
 images = dir(fullfile(datadir, subject, '*', filter));
@@ -26,8 +30,8 @@ metadata.channels = unique(channels);
 
 metadata.imagepath = cell(length(metadata.sections),length(metadata.channels));
 for c = 1:length(metadata.channels)
-    channel = metadata.channels{c};
-    sub = ismember(channels, channel);
+    ch = metadata.channels{c};
+    sub = ismember(channels, ch);
     for n = 1:sum(sub)
         subsections = sections(sub);
         subimages = images(sub);
@@ -36,15 +40,19 @@ for c = 1:length(metadata.channels)
     end
 end
 
+channelIdx = 1;
+if exist('channel', 'var') && ~isempty(channel)
+    channelIdx = find(ismember(metadata.channels, channel));
+end
 metadata.rois = nan(length(metadata.sections),4);
 metadata.boundaries = cell(length(metadata.sections),1);
 metadata.refs = nan(length(metadata.sections),2);
 for n = 1:length(metadata.sections)
-    I = imread(metadata.imagepath{n,end});
+    I = imread(metadata.imagepath{n,channelIdx});
     downsample = ceil(length(I)/500); % ideal size 500x500
     I = I(1:downsample:end,1:downsample:end);
     [rois, sections, boundaries, refs] = slide_segmenter(I,...
-        max(1,50/downsample), true, ['Section ', num2str(metadata.sections(n))]);
+        max(1,50/downsample), inspect, ['Section ', num2str(metadata.sections(n))]);
     area = times(rois(:,3),rois(:,4));
     [~, biggest] = max(area);
     metadata.rois(n,:) = rois(biggest,:).*downsample;

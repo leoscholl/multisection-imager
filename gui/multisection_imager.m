@@ -22,7 +22,7 @@ function varargout = multisection_imager(varargin)
 
 % Edit the above text to modify the response to help multisection_imager
 
-% Last Modified by GUIDE v2.5 25-Sep-2018 15:37:13
+% Last Modified by GUIDE v2.5 04-Dec-2018 13:47:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,7 +64,7 @@ else
 end
 handles.uiPrefsList = {'DataDir', ...
     'Channels', 'Exposures', 'Grid', 'AutoConvert', ...
-    'SaveASC', 'CountCells', 'DefaultFlats'};
+    'SaveASC', 'CountCells', 'DefaultFlats', 'RGB'};
 % Update handles structure
 guidata(hObject, handles);
 
@@ -204,12 +204,13 @@ defaultFlats = handles.DefaultFlats.String;
 doConvert = handles.AutoConvert.Value;
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
+rgb = handles.RGB.Value;
 pairs = handles.Pairs.Data;
 if doConvert
     fprintf('Exporting...\n');
     setStatus(handles, 'Exporting...');
     postProcess(result.store, dir, subject, [], defaultFlats, ...
-        doAsc, doCellCount, pairs);
+        doAsc, doCellCount, rgb, pairs);
     fprintf('Done exporting.\n');
     title = 'Done exporting';
     body = 'Acquisition is finished exporting.';
@@ -237,6 +238,7 @@ end
 defaultFlats = handles.DefaultFlats.String;
 doAsc = handles.SaveASC.Value;
 doCellCount = handles.CountCells.Value;
+rgb = handles.RGB.Value;
 pairs = handles.Pairs.Data;
 mm = handles.mm;
 windows = mm.displays().getAllImageWindows().toArray();
@@ -261,7 +263,7 @@ for w = 1:length(windows)
     fprintf('Export %s...\n', name);
     setStatus(handles, 'Exporting...');
     postProcess(store, dir, subject, [], defaultFlats, ...
-        doAsc, doCellCount, pairs);
+        doAsc, doCellCount, rgb, pairs);
 end
 title = 'Done exporting';
 body = sprintf('%d acquisitions are finished exporting.', length(windows));
@@ -531,3 +533,12 @@ function Help_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 web('https://github.com/leoscholl/multisection-imager#readme','-browser')
+
+
+% --- Executes on button press in RGB.
+function RGB_Callback(hObject, eventdata, handles)
+% hObject    handle to RGB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of RGB

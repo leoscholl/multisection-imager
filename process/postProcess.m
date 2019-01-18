@@ -6,6 +6,7 @@ p.addOptional('makeFlats', '');
 p.addOptional('defaultFlats', '', @ischar);
 p.addOptional('doAsc', false);
 p.addOptional('doCellCount', false);
+p.addOptional('rgb', false);
 p.addOptional('cellCountChannelPairs', {'mCherry', 'GFP'});
 p.addParameter('segmentOnly', false);
 p.parse(varargin{:});
@@ -42,7 +43,7 @@ end
 if p.Results.segmentOnly
     waitbar(0.5, wb, 'Segmenting...');
     metadata = segmentSlide(img, metadata);
-    exportMetadata(metadata, subject, datadir);
+    exportMetadata(metadata, metafile);
     delete(wb);
     return
 end
@@ -106,7 +107,7 @@ end
 
 % Save to disk
 waitbar(0.7, wb, 'Writing images...');
-metadata = writeImages(img, metadata, subject, datadir);
+metadata = writeImages(img, metadata, subject, datadir, 1, p.Results.rgb);
 waitbar(0.9, wb, 'Exporting metadata...'); 
 exportMetadata(metadata, metafile);
 if p.Results.doAsc

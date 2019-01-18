@@ -43,8 +43,8 @@ end
 pairs = [];
 i = 1;
 for p = 1:size(channelPairs,1)
-    p1 = find(ismember(metadata.channels, channelPairs{p,1}));
-    p2 = find(ismember(metadata.channels, channelPairs{p,2}));
+    p1 = find(ismember(metadata.imageorder, channelPairs{p,1}));
+    p2 = find(ismember(metadata.imageorder, channelPairs{p,2}));
     if ~isempty(p1) && ~isempty(p2)
         pairs(i,:) = [p1 p2];
         i = i + 1;
@@ -64,8 +64,12 @@ for n = 1:length(metadata.boundaries)
         [I,offset] = stitchImg(img, metadata, downsample, [], metadata.boundaries{n}, false);
     else
         clearvars I
-        for c = 1:size(metadata.imagepath,2)
-            I(:,:,c) = imread(metadata.imagepath{n,c});
+        if metadata.isrgb
+            I = imread(metadata.imagepath{n});
+        else
+            for c = 1:size(metadata.imagepath,2)
+                I(:,:,c) = imread(metadata.imagepath{n,c});
+            end
         end
         I = I(1:downsample:end,1:downsample:end,:);
         offset = [0 0];
@@ -78,13 +82,7 @@ for n = 1:length(metadata.boundaries)
     b = binaryBlobs(I, metadata.pixelSize*downsample, pairs);
     for c = 1:size(b,3)
         stats = regionprops(b(:,:,c), 'Centroid', 'EquivDiameter', 'Perimeter', 'Area');
-        
-        % Remove blobs with circularity below threshold
-        circularity = 4*pi*cell2mat({stats.Area}')./cell2mat({stats.Perimeter}').^2;
-        circular = circularity >= circThr;
-        stats(~circular) = [];
-        circularity(~circular) = [];
-        
+
         % Remove blobs outside the brain outline
         centroid = cell2mat({stats.Centroid}').*downsample;
         if ~isempty(centroid)
@@ -93,14 +91,12 @@ for n = 1:length(metadata.boundaries)
                 metadata.boundaries{n}(:,1), metadata.boundaries{n}(:,2));
             inBounds = in | on;
             stats(~inBounds) = [];
-            centroid(~inBounds) = [];
-            circularity(~inBounds) = [];
         end
         
         % Save information to metadata
-        metadata.cells{n,c}.centroid = centroid;
+        metadata.cells{n,c}.centroid = cell2mat({stats.Centroid}').*downsample;
         metadata.cells{n,c}.diameter = cell2mat({stats.EquivDiameter}').*downsample;
-        metadata.cells{n,c}.circularity = circularity;
+        metadata.cells{n,c}.circularity = 4*pi*cell2mat({stats.Area}')./cell2mat({stats.Perimeter}').^2;
         metadata.cells{n,c}.channel = pairs(c,1);
     end
 end
