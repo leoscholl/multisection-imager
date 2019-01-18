@@ -51,16 +51,24 @@ for p = 1:size(pairs, 1)
     sub = localNormalized(:,:,channel) - localNormalized(:,:,reference);
     candidates = imbinarize(sub, sigma/6); % 1 is 6 std above mean
     candidates = imclose(candidates, strel('disk', round(4/pixelSize)));
-    
-    % exclude sharp edges
-    edges = edge(f(:,:,reference), 'canny', [0.01, 0.1]);
+    candidates = bwareafilt(candidates, [minArea maxArea]);
+
+    % find sharp edges
+    edges = edge(f(:,:,reference).*f(:,:,channel), 'canny', [0.1, 0.2]);
     edges = bwareaopen(edges, minArea);
     edges = imdilate(edges,strel('disk',round(12/pixelSize)));
     edges = imfill(edges, 'holes');
-    
-    % combine and filter based on area
-    b2 = and(candidates, not(edges));
-    b2 = bwareafilt(b2, [minArea maxArea]);
+
+    % exclude candidates that overlap any edge
+    b2 = zeros(1,size(candidates,1)*size(candidates,2),'like',candidates);
+    CC = bwconncomp(candidates, 4);
+    le = edges(:);
+    for i = 1:CC.NumObjects
+        if all(le(CC.PixelIdxList{i})) == 0
+            b2(CC.PixelIdxList{i}) = 1;
+        end
+    end
+    b2 = reshape(b2, size(candidates));
     b2 = imfill(b2, 'holes');
     
     b(:,:,p) = b2;
