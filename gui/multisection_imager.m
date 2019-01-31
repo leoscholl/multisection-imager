@@ -200,22 +200,9 @@ end
 notifyUsers(users, title, body, color);
 
 % Post-processing
-defaultFlats = handles.DefaultFlats.String;
 doConvert = handles.AutoConvert.Value;
-doAsc = handles.SaveASC.Value;
-doCellCount = handles.CountCells.Value;
-rgb = handles.RGB.Value;
-pairs = handles.Pairs.Data;
 if doConvert
-    fprintf('Exporting...\n');
-    setStatus(handles, 'Exporting...');
-    postProcess(result.store, dir, subject, [], defaultFlats, ...
-        doAsc, doCellCount, rgb, pairs);
-    fprintf('Done exporting.\n');
-    title = 'Done exporting';
-    body = 'Acquisition is finished exporting.';
-    color = 'good';
-    notifyUsers(users, title, body, color);
+    Convert_Callback(hObject, eventdata, handles);
 end
 setStatus(handles, '');
 

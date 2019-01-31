@@ -28,11 +28,11 @@ for n = 1:length(metadata.sections)
     % Reference point
     ref = [0 0];
     offset = [0 0];
-    if isfield(metadata, 'positions') && isfield(metadata, 'boundaries')
+    if isfield(metadata, 'position') && isfield(metadata, 'boundaries')
         [~, ~, ~, offset] = calculateBounds(metadata, [], metadata.boundaries{n}, false);
     end
     if isfield(metadata, 'refs')
-        ref = metadata.refs(n,:) - offset;
+        ref = metadata.refs(n,:);
     end
     
     % Image metadata
@@ -48,7 +48,8 @@ for n = 1:length(metadata.sections)
         fprintf(f, ' Filename "%s" Merge 65535 65535 65535 0\r\n', filepath);
         fprintf(f, ' Coords %g %g %g %g %g\r\n', ...
             metadata.pixelSize, metadata.pixelSize,...
-            -ref(1)*metadata.pixelSize, ref(2)*metadata.pixelSize, 0);
+            -(ref(1) - offset(1))*metadata.pixelSize, ...
+            (ref(2) - offset(2))*metadata.pixelSize, 0);
     end
     fprintf(f, '); End of ImageCoords\r\n\r\n');
     
@@ -62,8 +63,8 @@ for n = 1:length(metadata.sections)
             metadata.pixelSize);
         for p = 1:size(metadata.boundaries{n},1)
             fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ;  1, %d\r\n', ...
-                (metadata.boundaries{n}(p,1) - offset(1) - ref(1))*metadata.pixelSize, ...
-                -(metadata.boundaries{n}(p,2) - offset(2) - ref(2))*metadata.pixelSize, ...
+                (metadata.boundaries{n}(p,1) - ref(1))*metadata.pixelSize, ...
+                -(metadata.boundaries{n}(p,2) - ref(2))*metadata.pixelSize, ...
                 0, metadata.pixelSize, p);
         end
         fprintf(f, ')  ;  End of contour\r\n\r\n');
@@ -85,8 +86,8 @@ for n = 1:length(metadata.sections)
             end
             for p = 1:size(metadata.cells{n,c}.centroid,1)
                 fprintf(f, '  (%8.2f %8.2f %8.2f %8.2f)  ; %d\r\n', ...
-                    (metadata.cells{n,c}.centroid(p,1) - offset(1) - ref(1))*metadata.pixelSize - 5, ...
-                    -(metadata.cells{n,c}.centroid(p,2) - offset(2) - ref(2))*metadata.pixelSize - 5, ...
+                    (metadata.cells{n,c}.centroid(p,1) - ref(1))*metadata.pixelSize - 5, ...
+                    -(metadata.cells{n,c}.centroid(p,2) - ref(2))*metadata.pixelSize - 5, ...
                     0, metadata.cells{n,c}.diameter(p), p);
             end
             fprintf(f, ')  ;  End of markers\r\n\r\n');

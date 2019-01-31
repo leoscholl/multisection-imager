@@ -12,6 +12,10 @@ if ~exist('rgb', 'var')
     rgb = false;
 end
 
+if exist('img', 'var') && ~isempty(img)
+    metadata.imagepath = {};
+end
+
 msg = '';
 for n = 1:length(metadata.boundaries)
     
@@ -56,7 +60,7 @@ for n = 1:length(metadata.boundaries)
         filename = sprintf('%s Sect %03d %s.tiff', ...
             subject, metadata.sections(n), strjoin(channels, ' '));
         filepath = fullfile(datapath, filename);
-        metadata.imagepath{n} = filepath;
+        metadata.imagepath{n,1} = filepath;
         
         t = Tiff(filepath, 'w');
         tags = struct;
